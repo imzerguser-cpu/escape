@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔑 방탈출 관리자</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap');
+:root{--navy:#1B2E4A;--navy-g:#3B6BA5;--sky:#4DA3E8;--sky-p:#E8F4FD;--red:#E0465A;--green:#2DAA6E;--bg:#F3F5F8;--card:#FFF;--tx:#1E2D3D;--tx2:#6B7D8F;--bdr:#E0E7EF;--sh:0 1px 4px rgba(27,46,74,.07);}
+*{box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);margin:0;}
+.hd{background:linear-gradient(135deg,var(--navy),var(--navy-g));color:#fff;padding:16px 20px;}
+.hd h1{font-size:19px;}
+.hd .sub{font-size:11px;opacity:.7;margin-top:2px;}
+.tabs{display:flex;gap:2px;background:rgba(255,255,255,.15);border-radius:8px;padding:2px;margin-top:10px;max-width:320px;}
+.tab{flex:1;padding:8px 6px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:rgba(255,255,255,.7);font-family:inherit;}
+.tab.on{background:#fff;color:var(--navy);}
+.wrap{max-width:1000px;margin:0 auto;padding:18px;}
+.card{background:var(--card);border-radius:10px;box-shadow:var(--sh);padding:16px;margin-bottom:16px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{border:1px solid var(--bdr);padding:8px 6px;text-align:center;}
+th{background:#F0F3F7;font-size:11px;}
+.prog-cell{font-weight:800;}
+.prog-full{color:var(--green);background:#EAFBF1;}
+.prog-zero{color:#B9C2CC;}
+.keycount{font-size:18px;font-weight:900;color:#D4A017;}
+.btn{border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;padding:9px 16px;font-size:13px;}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-primary{background:var(--sky);color:#fff;}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;}
+.room-sec{page-break-inside:avoid;margin-bottom:22px;}
+.room-sec h2{font-size:15px;background:var(--navy);color:#fff;padding:6px 10px;border-radius:6px;margin-bottom:10px;}
+.qr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.qr-card{border:1px solid var(--bdr);border-radius:8px;padding:8px;text-align:center;page-break-inside:avoid;background:#fff;}
+.qr-card canvas{width:100%;height:auto;max-width:120px;}
+.qr-id{font-weight:900;font-size:12px;margin-top:4px;}
+.qr-meta{font-size:10px;color:var(--tx2);}
+@media print{
+  .hd,.actions,.tabs{display:none!important;}
+  .wrap{padding:0;max-width:none;}
+  .card{box-shadow:none;border:none;padding:0;}
+  .qr-grid{grid-template-columns:repeat(4,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="hd">
+  <h1>🔑 방탈출 관리자 페이지</h1>
+  <div class="sub">실시간 진행 현황 · QR 코드 인쇄</div>
+  <div class="tabs">
+    <button class="tab on" id="tabDash" onclick="showTab('dash')">📊 대시보드</button>
+    <button class="tab" id="tabQr" onclick="showTab('qr')">🖨️ QR 인쇄</button>
+  </div>
+</div>
+<div class="wrap">
+  <div id="viewDash"></div>
+  <div id="viewQr" style="display:none"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyAKbtiQ1UutXkGI2ozyTNDO3N20NQ9vjDE",authDomain:"jump-rope-43833.firebaseapp.com",databaseURL:"https://jump-rope-43833-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"jump-rope-43833",storageBucket:"jump-rope-43833.firebasestorage.app",messagingSenderId:"870652268913",appId:"1:870652268913:web:6b45cabb7e317827b1a6d0"});
+const db=firebase.database();
+const dbRoot=db.ref("escape_data");
+
+const ROOMS=[
+ {id:"R1",emoji:"📚",name:"도서관"},
+ {id:"R2",emoji:"💻",name:"컴퓨터실"},
+ {id:"R3",emoji:"🌍",name:"영어체험실"},
+ {id:"R4",emoji:"🥽",name:"VR실"},
+ {id:"R5",emoji:"🏛️",name:"강당"},
+];
+// qid, 학년, 유형 라벨만 필요 (QR 라벨/대시보드용)
+const QMETA={
+R1:[["R1Q1",1,"덧셈"],["R1Q2",2,"덧셈"],["R1Q3",3,"나눗셈"],["R1Q4",4,"각도"],["R1Q5",4,"큰 수"],["R1Q6",5,"분수 덧뺄셈"],["R1Q7",6,"분수 나눗셈"],["R1Q8",6,"각기둥과 각뿔"]],
+R2:[["R2Q1",1,"뺄셈"],["R2Q2",2,"뺄셈"],["R2Q3",3,"평면도형"],["R2Q4",4,"곱셈과 나눗셈"],["R2Q5",4,"규칙 찾기"],["R2Q6",5,"약수와 배수"],["R2Q7",6,"소수의 나눗셈"],["R2Q8",6,"비와 비율"]],
+R3:[["R3Q1",1,"줄넘기"],["R3Q2",2,"줄넘기"],["R3Q3",3,"영어 단어"],["R3Q4",4,"영어 단어"],["R3Q5",4,"영어 단어"],["R3Q6",5,"영어 단어(랜덤)"],["R3Q7",6,"영어 단어(랜덤)"],["R3Q8",6,"영어 단어(랜덤)"]],
+R4:[["R4Q1",1,"줄넘기"],["R4Q2",2,"줄넘기"],["R4Q3",3,"과학"],["R4Q4",4,"과학"],["R4Q5",4,"과학"],["R4Q6",5,"과학"],["R4Q7",6,"과학"],["R4Q8",6,"과학"]],
+R5:[["R5Q1",1,"덧셈"],["R5Q2",2,"덧셈"],["R5Q3",3,"길이와 시간"],["R5Q4",4,"평면도형의 이동"],["R5Q5",4,"막대그래프"],["R5Q6",5,"둘레와 넓이"],["R5Q7",6,"직육면체 부피"],["R5Q8",6,"띠그래프"]],
+};
+
+function showTab(t){
+  document.getElementById("tabDash").className="tab"+(t==="dash"?" on":"");
+  document.getElementById("tabQr").className="tab"+(t==="qr"?" on":"");
+  document.getElementById("viewDash").style.display=t==="dash"?"":"none";
+  document.getElementById("viewQr").style.display=t==="qr"?"":"none";
+  if(t==="qr")renderQrPage();
+}
+
+/* ===== 대시보드 ===== */
+function renderDash(all){
+  all=all||{};
+  let h='<div class="actions"><button class="btn btn-danger" onclick="resetAll()">🗑 전체 진행상황 초기화</button></div>';
+  h+='<div class="card"><table><tr><th>조</th>';
+  ROOMS.forEach(r=>h+="<th>"+r.emoji+" "+r.name+"</th>");
+  h+="<th>총 진행</th><th>🔑 열쇠</th></tr>";
+  for(let n=1;n<=5;n++){
+    const d=all["team"+n]||{};
+    const solved=d.solvedIds||{};
+    let totalSolved=0,keys=0;
+    h+="<tr><td><b>"+n+"조</b></td>";
+    ROOMS.forEach(r=>{
+      const cnt=QMETA[r.id].filter(q=>solved[q[0]]).length;
+      totalSolved+=cnt;
+      if(cnt===8)keys++;
+      h+='<td class="prog-cell '+(cnt===8?"prog-full":cnt===0?"prog-zero":"")+'">'+cnt+" / 8</td>";
+    });
+    h+="<td><b>"+totalSolved+" / 40</b></td><td class=\"keycount\">"+keys+" / 5</td></tr>";
+  }
+  h+="</table></div>";
+  document.getElementById("viewDash").innerHTML=h;
+}
+function resetAll(){
+  if(!confirm("정말 모든 조의 진행상황을 초기화할까요?\n(리허설 후 실제 행사 전에만 사용하세요)"))return;
+  const updates={};
+  for(let n=1;n<=5;n++)updates["team"+n]={solvedIds:{},randomPicks:{},cooldown:{},ts:Date.now()};
+  dbRoot.set(updates).then(()=>alert("초기화되었습니다."));
+}
+dbRoot.on("value",snap=>renderDash(snap.val()));
+
+/* ===== QR 인쇄 ===== */
+let qrRendered=false;
+function renderQrPage(){
+  if(qrRendered)return;
+  qrRendered=true;
+  let h='<div class="actions"><button class="btn btn-primary" onclick="window.print()">🖨️ 인쇄하기</button></div>';
+  ROOMS.forEach(r=>{
+    h+='<div class="room-sec"><h2>'+r.emoji+" "+r.name+" ("+r.id+")</h2><div class=\"qr-grid\">";
+    QMETA[r.id].forEach(q=>{
+      h+='<div class="qr-card"><canvas id="qr_'+q[0]+'"></canvas><div class="qr-id">'+q[0]+'</div><div class="qr-meta">'+q[1]+"학년 · "+q[2]+"</div></div>";
+    });
+    h+="</div></div>";
+  });
+  document.getElementById("viewQr").innerHTML=h;
+  ROOMS.forEach(r=>{
+    QMETA[r.id].forEach(q=>{
+      const cv=document.getElementById("qr_"+q[0]);
+      QRCode.toCanvas(cv,q[0],{width:140,margin:1},function(){});
+    });
+  });
+}
+</script>
+</body>
+</html>

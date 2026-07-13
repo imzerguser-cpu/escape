@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>🔑 방탈출 놀이</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap');
+:root{--navy:#1B2E4A;--navy-l:#2A4470;--navy-g:#3B6BA5;--sky:#4DA3E8;--sky-p:#E8F4FD;--red:#E0465A;--green:#2DAA6E;--orange:#E8833A;--gold:#D4A017;--purple:#B15CFF;--bg:#F3F5F8;--card:#FFF;--tx:#1E2D3D;--tx2:#6B7D8F;--tx3:#A4B3C2;--bdr:#E0E7EF;--sh:0 1px 4px rgba(27,46,74,.07);--r:12px;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{font-size:16px;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);line-height:1.5;min-height:100vh;overflow-x:hidden;}
+.hd{background:linear-gradient(135deg,var(--navy),var(--navy-g));color:#fff;padding:14px 16px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:space-between;}
+.hd-l{display:flex;flex-direction:column;}
+.hd-title{font-size:17px;font-weight:900;}
+.hd-team{font-size:11px;opacity:.75;margin-top:1px;}
+.sync-ind{font-size:10px;opacity:.85;display:flex;align-items:center;gap:4px;}
+.sync-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.sync-on{background:#4ADE80;}.sync-off{background:#F59E0B;}.sync-err{background:#EF4444;}
+.wrap{max-width:640px;margin:0 auto;padding:16px 14px 40px;}
+.btn{border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:800;transition:.12s;}
+.btn:active{transform:scale(.97);}
+.btn-lg{padding:16px;font-size:17px;width:100%;color:#fff;}
+.btn-primary{background:linear-gradient(135deg,var(--sky),var(--navy-g));}
+.btn-sub{background:#fff;color:var(--navy);border:2px solid var(--bdr);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-green{background:var(--green);color:#fff;}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:18px;margin-bottom:14px;}
+/* 팀 선택 */
+.team-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
+@media(min-width:480px){.team-grid{grid-template-columns:repeat(3,1fr);}}
+.team-btn{padding:26px 10px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;background:#fff;box-shadow:var(--sh);font-size:20px;font-weight:900;color:var(--navy);transition:.12s;}
+.team-btn:active{transform:scale(.96);background:var(--sky-p);}
+/* 홈 */
+.keys-bar{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px;background:linear-gradient(135deg,#FFF7E0,#FFEFC2);border-radius:var(--r);margin-bottom:14px;border:1px solid #F0DFA0;}
+.keys-bar .k{font-size:26px;filter:grayscale(1) opacity(.35);}
+.keys-bar .k.on{filter:none;}
+.keys-txt{font-size:12px;color:#7C5A00;font-weight:700;margin-left:8px;}
+.room-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.room-card{background:#fff;border-radius:14px;box-shadow:var(--sh);padding:16px 12px;text-align:center;border:2px solid transparent;}
+.room-card.done{border-color:var(--green);background:#F0FBF5;}
+.room-emoji{font-size:32px;}
+.room-name{font-size:13px;font-weight:800;margin-top:4px;}
+.room-prog{font-size:12px;color:var(--tx2);margin-top:4px;font-weight:700;}
+.room-bar{height:6px;background:#E7ECF2;border-radius:3px;margin-top:6px;overflow:hidden;}
+.room-bar-f{height:100%;background:var(--sky);border-radius:3px;transition:width .3s;}
+.room-card.done .room-bar-f{background:var(--green);}
+.scan-fab{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:min(560px,calc(100% - 32px));z-index:40;}
+.scan-fab button{padding:18px;border-radius:16px;font-size:18px;box-shadow:0 6px 20px rgba(27,46,74,.35);}
+.team-switch{font-size:11px;color:var(--tx3);text-align:center;margin-top:18px;text-decoration:underline;cursor:pointer;}
+/* 스캔 화면 */
+.scan-wrap{text-align:center;}
+.cam-box{position:relative;width:100%;max-width:420px;margin:10px auto;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:1/1;}
+.cam-box video{width:100%;height:100%;object-fit:cover;}
+.cam-frame{position:absolute;inset:14%;border:3px solid #fff;border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.35);}
+.cam-msg{font-size:12px;color:var(--tx2);margin:8px 0;}
+.manual-box{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:14px;margin-top:16px;}
+.manual-box h4{font-size:13px;color:var(--tx2);margin-bottom:8px;}
+.manual-row{display:flex;gap:8px;}
+.txt-inp{flex:1;padding:12px;border:2px solid var(--bdr);border-radius:10px;font-size:16px;font-family:inherit;text-transform:uppercase;}
+.txt-inp:focus{border-color:var(--sky);outline:none;}
+/* 문제 화면 */
+.q-badges{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;}
+.b-id{background:var(--navy);color:#fff;}
+.b-grade{background:var(--sky-p);color:var(--navy-g);}
+.b-unit{background:#F0F3F7;color:var(--tx2);}
+.grade-warn{background:#FFF3D6;border:1px solid #F5DFA0;border-radius:10px;padding:10px 12px;font-size:13px;color:#7C5A00;font-weight:700;margin-bottom:12px;}
+.qimg{margin:10px 0;text-align:center;background:#FAFBFC;border:1px solid #E5EAEF;border-radius:10px;padding:10px;}
+.qimg svg{width:100%;height:auto;max-width:320px;display:block;margin:0 auto;}
+.qimg.wide svg{max-width:600px;}
+.qimg table.plain{width:100%;max-width:230px;margin:0 auto 10px;border-collapse:collapse;}
+.qimg table.plain th,.qimg table.plain td{border:1px solid #ccc;padding:5px 8px;font-size:12px;text-align:center;}
+.qimg table.plain th{background:#F0F3F7;}
+.pictogram{font-size:30px;text-align:center;letter-spacing:8px;}
+.dotgrid{font-size:19px;text-align:center;letter-spacing:2px;color:var(--navy-g);line-height:1.6;font-weight:700;}
+.q-text{font-size:16px;font-weight:600;margin:12px 0;line-height:1.6;}
+.ans-row{display:flex;gap:8px;margin-top:10px;}
+.ans-row .txt-inp{text-transform:none;}
+.fb-box{margin-top:14px;padding:14px;border-radius:12px;font-size:15px;font-weight:800;text-align:center;}
+.fb-ok{background:#E8F9EF;color:var(--green);border:1px solid #B9EDCB;}
+.fb-bad{background:#FDEEEF;color:var(--red);border:1px solid #F5C6CB;}
+.fb-lock{background:#FFF3D6;color:#7C5A00;border:1px solid #F5DFA0;}
+.fb-review{background:#EAF2FB;color:var(--navy-g);border:1px solid #C7DCF2;}
+.center-icon{font-size:42px;text-align:center;margin-bottom:6px;}
+.cooldown-txt{font-size:12px;color:var(--tx3);text-align:center;margin-top:8px;}
+.finale{text-align:center;padding:40px 16px;}
+.finale .em{font-size:64px;}
+.finale h2{font-size:22px;margin:10px 0;color:var(--navy);}
+.finale p{font-size:14px;color:var(--tx2);line-height:1.7;}
+.top-back{font-size:13px;color:var(--sky);font-weight:800;cursor:pointer;margin-bottom:10px;display:inline-block;}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-box{background:#fff;border-radius:16px;padding:26px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.25);}
+.modal-box .em{font-size:56px;}
+.modal-box h3{font-size:19px;margin:8px 0;color:var(--navy);}
+.modal-box p{font-size:13px;color:var(--tx2);line-height:1.6;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<div class="hd">
+  <div class="hd-l">
+    <div class="hd-title">🔑 방탈출 놀이</div>
+    <div class="hd-team" id="hdTeam">조 선택 전</div>
+  </div>
+  <div class="sync-ind"><span class="sync-dot sync-off" id="syncDot"></span><span id="syncTxt">연결 중</span></div>
+</div>
+<div class="wrap" id="app"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyAKbtiQ1UutXkGI2ozyTNDO3N20NQ9vjDE",authDomain:"jump-rope-43833.firebaseapp.com",databaseURL:"https://jump-rope-43833-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"jump-rope-43833",storageBucket:"jump-rope-43833.firebasestorage.app",messagingSenderId:"870652268913",appId:"1:870652268913:web:6b45cabb7e317827b1a6d0"});
+const db=firebase.database();
+
+/* ===================== 문제 데이터 ===================== */
+const ROOMS=[
+ {id:"R1",emoji:"📚",name:"도서관"},
+ {id:"R2",emoji:"💻",name:"컴퓨터실"},
+ {id:"R3",emoji:"🌍",name:"영어체험실"},
+ {id:"R4",emoji:"🥽",name:"VR실"},
+ {id:"R5",emoji:"🏛️",name:"강당"},
+];
+
+const POOL_A=[{ko:"의사",en:"doctor"},{ko:"선생님",en:"teacher"},{ko:"요리사",en:"cook"},{ko:"농부",en:"farmer"},{ko:"가수",en:"singer"},{ko:"화가",en:"painter"},{ko:"경찰관",en:"police officer"},{ko:"소방관",en:"firefighter"}];
+const POOL_B=[{ko:"어제",en:"yesterday"},{ko:"도서관",en:"library"},{ko:"병원",en:"hospital"},{ko:"박물관",en:"museum"},{ko:"서점",en:"bookstore"},{ko:"우체국",en:"post office"},{ko:"지난주",en:"last week"},{ko:"다음달",en:"next month"}];
+
+const QUESTIONS={
+R1:[
+ {qid:"R1Q1",grade:1,unit:"덧셈(문장제·그림)",answer:"6",
+  img:'<div class="pictogram">✏️✏️✏️✏️ &nbsp;+&nbsp; ✏️✏️</div>',
+  text:"문구점에 연필이 4자루 있었는데 2자루를 더 사왔습니다. 연필은 모두 몇 자루인가요?"},
+ {qid:"R1Q2",grade:2,unit:"덧셈(문장제·그림, 10묶음)",answer:"28",
+  img:'<div class="dotgrid">●●●●●●●●●●<br>●●●●●●●●●●<br>●●●&nbsp;&nbsp;+&nbsp;&nbsp;●●●●●</div>',
+  text:"교실에 학생이 23명(10개씩 두 줄 + 3명) 있었는데 5명이 전학을 왔습니다. 지금 교실에 있는 학생은 모두 몇 명인가요?"},
+ {qid:"R1Q3",grade:3,unit:"나눗셈(문장제)",answer:"8",img:"",
+  text:"사탕 48개를 6명에게 똑같이 나누어 주려고 합니다. 한 명이 몇 개씩 받게 되나요?"},
+ {qid:"R1Q4",grade:4,unit:"각도(그림)",answer:"50",
+  img:'<svg viewBox="0 0 170 140"><polygon points="15,120 155,120 90,20" fill="#EAF2FB" stroke="#1B2E4A" stroke-width="2"/><text x="35" y="112" font-size="12" fill="#E0465A" font-weight="700">70°</text><text x="118" y="112" font-size="12" fill="#E0465A" font-weight="700">60°</text><text x="82" y="38" font-size="13" fill="#2DAA6E" font-weight="800">?</text></svg>',
+  text:"삼각형의 세 각의 크기의 합은 180도입니다. 그림처럼 두 각이 70°, 60°일 때 나머지 한 각(?)은 몇 도인가요?"},
+ {qid:"R1Q5",grade:4,unit:"큰 수",answer:"35000",img:"",
+  text:"10000이 3개, 1000이 5개인 수는 얼마인가요?"},
+ {qid:"R1Q6",grade:5,unit:"분수의 덧셈과 뺄셈(문장제)",answer:"1/2",img:"",
+  text:"우유를 어제 1/3병, 오늘 1/6병 마셨습니다. 이틀 동안 마신 우유는 모두 몇 병인가요? (기약분수로, 예: 1/2)"},
+ {qid:"R1Q7",grade:6,unit:"분수의 나눗셈(문장제)",answer:"6",img:"",
+  text:"리본 3/4m를 한 사람당 1/8m씩 나누어 주려고 합니다. 몇 명에게 나누어 줄 수 있나요?"},
+ {qid:"R1Q8",grade:6,unit:"각기둥과 각뿔(그림)",answer:"삼각기둥",
+  img:'<svg viewBox="0 0 150 120"><polygon points="20,100 70,100 45,50" fill="none" stroke="#1B2E4A" stroke-width="2"/><polygon points="60,80 110,80 85,30" fill="#EAF2FB" stroke="#1B2E4A" stroke-width="2"/><line x1="20" y1="100" x2="60" y2="80" stroke="#1B2E4A" stroke-width="2"/><line x1="70" y1="100" x2="110" y2="80" stroke="#1B2E4A" stroke-width="2"/><line x1="45" y1="50" x2="85" y2="30" stroke="#1B2E4A" stroke-width="2"/></svg>',
+  text:"그림과 같이 두 밑면이 서로 합동인 삼각형이고 옆면이 직사각형인 입체도형의 이름은 무엇인가요?"},
+],
+R2:[
+ {qid:"R2Q1",grade:1,unit:"뺄셈(문장제·그림)",answer:"4",
+  img:'<svg viewBox="0 0 260 80"><text x="8" y="45" font-size="24">🐦</text><text x="34" y="45" font-size="24">🐦</text><text x="60" y="45" font-size="24">🐦</text><text x="86" y="45" font-size="24">🐦</text><text x="118" y="45" font-size="24">🐦</text><text x="144" y="45" font-size="24">🐦</text><text x="170" y="45" font-size="24">🐦</text><ellipse cx="157" cy="38" rx="48" ry="27" fill="none" stroke="#E0465A" stroke-width="2.5"/><line x1="206" y1="38" x2="245" y2="38" stroke="#E0465A" stroke-width="2.5"/><polygon points="245,38 235,32 235,44" fill="#E0465A"/><text x="195" y="65" font-size="10" fill="#E0465A" font-weight="700">3마리가 날아감</text></svg>',
+  text:"새가 나뭇가지에 7마리 앉아 있었는데(그림) 동그라미 친 3마리가 화살표 방향으로 날아갔습니다. 남은 새는 몇 마리인가요?"},
+ {qid:"R2Q2",grade:2,unit:"뺄셈(문장제·그림, 10묶음)",answer:"26",
+  img:'<div class="dotgrid">●●●●●●●●●●<br>●●●●●●●●●●<br>●●●●●&nbsp;&nbsp;(45장)</div>',
+  text:"색종이가 45장(그림) 있었는데 19장을 사용했습니다. 남은 색종이는 몇 장인가요?"},
+ {qid:"R2Q3",grade:3,unit:"평면도형(그림·보기)",answer:"4",
+  img:'<svg viewBox="0 0 320 90"><polygon points="10,15 70,10 65,60 15,55" fill="#EAF2FB" stroke="#1B2E4A" stroke-width="2"/><text x="30" y="80" font-size="11">① 사각형</text><polygon points="100,60 130,15 160,60" fill="#EAF2FB" stroke="#1B2E4A" stroke-width="2"/><text x="110" y="80" font-size="11">② 삼각형</text><circle cx="215" cy="38" r="25" fill="#EAF2FB" stroke="#1B2E4A" stroke-width="2"/><text x="198" y="80" font-size="11">③ 원</text><polygon points="290,12 310,28 303,55 277,55 270,28" fill="#EAF2FB" stroke="#1B2E4A" stroke-width="2"/><text x="272" y="80" font-size="11">④ 오각형</text></svg>',
+  text:"그림의 도형 ①~④ 중에서 변의 개수가 가장 많은 도형은 몇 번인가요? (번호로 답)"},
+ {qid:"R2Q4",grade:4,unit:"곱셈과 나눗셈(문장제)",answer:"168",img:"",
+  text:"한 상자에 초콜릿이 24개씩 들어 있습니다. 7상자에 들어 있는 초콜릿은 모두 몇 개인가요?"},
+ {qid:"R2Q5",grade:4,unit:"규칙 찾기",answer:"17",img:"",
+  text:"2, 5, 8, 11, 14, ○ 다음에 올 수는 무엇인가요?"},
+ {qid:"R2Q6",grade:5,unit:"약수와 배수",answer:"6",img:"",
+  text:"12와 18의 최대공약수는 얼마인가요?"},
+ {qid:"R2Q7",grade:6,unit:"소수의 나눗셈(문장제)",answer:"6",img:"",
+  text:"리본 7.2m를 1.2m씩 자르면 몇 도막이 되나요?"},
+ {qid:"R2Q8",grade:6,unit:"비와 비율",answer:"20",img:"",
+  text:"어떤 반 학생 25명 중 안경을 쓴 학생이 5명이라면, 안경을 쓴 학생의 비율은 몇 %인가요? (숫자만 입력)"},
+],
+R3:[
+ {qid:"R3Q1",grade:1,unit:"줄넘기 · 오래뛰기 10초↑",answer:"성공",img:"",
+  text:"선생님께 오래뛰기 10초 이상 성공을 확인받았나요? 확인받았다면 '성공'을 입력하세요."},
+ {qid:"R3Q2",grade:2,unit:"줄넘기 · 양발모아뛰기 20개↑",answer:"성공",img:"",
+  text:"선생님께 양발모아뛰기 20개 이상 성공을 확인받았나요? 확인받았다면 '성공'을 입력하세요."},
+ {qid:"R3Q3",grade:3,unit:"영어 단어",answer:"clock",img:"",
+  text:"'시계'를 영어로 입력해보세요."},
+ {qid:"R3Q4",grade:4,unit:"영어 단어",answer:"soccer",img:"",
+  text:"'축구'를 영어로 입력해보세요."},
+ {qid:"R3Q5",grade:4,unit:"영어 단어",answer:"saturday",img:"",
+  text:"'토요일'을 영어로 입력해보세요."},
+ {qid:"R3Q6",grade:5,unit:"영어 단어(랜덤)",type:"random",pool:POOL_A,img:"",
+  text:"화면에 나온 직업을 보고 영어로 입력해보세요."},
+ {qid:"R3Q7",grade:6,unit:"영어 단어(랜덤)",type:"random",pool:POOL_B,img:"",
+  text:"화면에 나온 낱말을 보고 영어로 입력해보세요."},
+ {qid:"R3Q8",grade:6,unit:"영어 단어(랜덤)",type:"random",pool:POOL_B,exclude:"R3Q7",img:"",
+  text:"화면에 나온 낱말을 보고 영어로 입력해보세요. (R3Q7과 다른 낱말이 나와요)"},
+],
+R4:[
+ {qid:"R4Q1",grade:1,unit:"줄넘기 · 양발모아뛰기 15개↑",answer:"성공",img:"",
+  text:"선생님께 양발모아뛰기 15개 이상 성공을 확인받았나요? 확인받았다면 '성공'을 입력하세요."},
+ {qid:"R4Q2",grade:2,unit:"줄넘기 · 오래뛰기 15초↑",answer:"성공",img:"",
+  text:"선생님께 오래뛰기 15초 이상 성공을 확인받았나요? 확인받았다면 '성공'을 입력하세요."},
+ {qid:"R4Q3",grade:3,unit:"과학",answer:"성충",img:"",
+  text:"곤충의 완전탈바꿈 순서는 알-애벌레-번데기-○○○입니다. 빈칸에 알맞은 말은?"},
+ {qid:"R4Q4",grade:4,unit:"과학",answer:"아래",img:"",
+  text:"지층에서 가장 오래전에 쌓인 층은 위/아래 중 어디인가요?"},
+ {qid:"R4Q5",grade:4,unit:"과학",answer:"3",img:"",
+  text:"씨가 싹 트는 데 필요한 조건이 아닌 것은? ①물 ②적당한 온도 ③어둠 (번호로 답)"},
+ {qid:"R4Q6",grade:5,unit:"과학",answer:"지구",img:"",
+  text:"태양에서 3번째로 가까운 행성은 무엇인가요?"},
+ {qid:"R4Q7",grade:6,unit:"과학",answer:"365",img:"",
+  text:"지구가 태양을 한 바퀴 도는 데 걸리는 시간은 며칠인가요? (숫자만 입력)"},
+ {qid:"R4Q8",grade:6,unit:"과학",answer:"산소",img:"",
+  text:"공기의 대부분을 차지하는 기체는 질소와 무엇인가요?"},
+],
+R5:[
+ {qid:"R5Q1",grade:1,unit:"덧셈(문장제·그림)",answer:"8",
+  img:'<div class="pictogram">🍬🍬🍬🍬🍬 &nbsp;+&nbsp; 🍬🍬🍬</div>',
+  text:"사탕이 5개 있었는데 3개를 더 받았습니다. 사탕은 모두 몇 개인가요?"},
+ {qid:"R5Q2",grade:2,unit:"덧셈(문장제·그림, 10묶음)",answer:"65",
+  img:'<div class="dotgrid">●●●●●●●●●●<br>●●●●●●●●●●<br>●●●●●●●●&nbsp;&nbsp;+&nbsp;&nbsp;●●●●●●●<br>●●●●●●●●●●<br>●●●●●●●●●●<br>●●●●●●●</div>',
+  text:"체육관에 공이 38개(그림) 있었는데 27개(그림)를 더 가져왔습니다. 공은 모두 몇 개인가요?"},
+ {qid:"R5Q3",grade:3,unit:"길이와 시간(문장제)",answer:"45",img:"",
+  text:"영화가 1시 40분에 시작해서 2시 25분에 끝났습니다. 영화는 몇 분 동안 상영되었나요?"},
+ {qid:"R5Q4",grade:4,unit:"평면도형의 이동(그림·보기)",answer:"2",
+  img:'<svg viewBox="0 0 220 90"><polygon points="20,20 60,20 60,45 45,45 45,70 20,70" fill="#E0465A" opacity="0.8"/><text x="20" y="85" font-size="10">(원래 모양)</text><text x="90" y="48" font-size="18" fill="#1B2E4A">→</text><polygon points="140,20 180,20 180,70 155,70 155,45 140,45" fill="#3B6BA5" opacity="0.8"/><text x="140" y="85" font-size="10">(변한 모양)</text></svg>',
+  text:"그림처럼 도형이 오른쪽 그림 모양으로 바뀌었습니다. 이 이동은 무엇인가요? ①밀기 ②뒤집기 ③돌리기 ④뒤집고 돌리기 (번호로 답)"},
+ {qid:"R5Q5",grade:4,unit:"막대그래프",answer:"2",wide:true,
+  img:'<table class="plain"><tr><th>과일</th><th>학생 수</th></tr><tr><td>사과</td><td>4명</td></tr><tr><td>바나나</td><td>7명</td></tr><tr><td>포도</td><td>3명</td></tr></table><svg viewBox="0 0 700 130"><g transform="translate(0,0)"><text x="60" y="14" font-size="12" font-weight="700" text-anchor="middle">①</text><line x1="15" y1="95" x2="150" y2="95" stroke="#999"/><line x1="15" y1="60" x2="150" y2="60" stroke="#eee"/><line x1="15" y1="25" x2="150" y2="25" stroke="#eee"/><text x="8" y="98" font-size="8" text-anchor="end">0</text><text x="8" y="63" font-size="8" text-anchor="end">5</text><text x="8" y="28" font-size="8" text-anchor="end">10</text><rect x="35" y="46" width="16" height="49" fill="#3B6BA5"/><rect x="70" y="67" width="16" height="28" fill="#E0465A"/><rect x="105" y="74" width="16" height="21" fill="#2DAA6E"/><text x="43" y="108" font-size="8" text-anchor="middle">사과</text><text x="78" y="108" font-size="8" text-anchor="middle">바나나</text><text x="113" y="108" font-size="8" text-anchor="middle">포도</text></g><g transform="translate(175,0)"><text x="60" y="14" font-size="12" font-weight="700" text-anchor="middle">②</text><line x1="15" y1="95" x2="150" y2="95" stroke="#999"/><line x1="15" y1="60" x2="150" y2="60" stroke="#eee"/><line x1="15" y1="25" x2="150" y2="25" stroke="#eee"/><text x="8" y="98" font-size="8" text-anchor="end">0</text><text x="8" y="63" font-size="8" text-anchor="end">5</text><text x="8" y="28" font-size="8" text-anchor="end">10</text><rect x="35" y="67" width="16" height="28" fill="#3B6BA5"/><rect x="70" y="46" width="16" height="49" fill="#E0465A"/><rect x="105" y="74" width="16" height="21" fill="#2DAA6E"/><text x="43" y="108" font-size="8" text-anchor="middle">사과</text><text x="78" y="108" font-size="8" text-anchor="middle">바나나</text><text x="113" y="108" font-size="8" text-anchor="middle">포도</text></g><g transform="translate(350,0)"><text x="60" y="14" font-size="12" font-weight="700" text-anchor="middle">③</text><line x1="15" y1="95" x2="150" y2="95" stroke="#999"/><line x1="15" y1="60" x2="150" y2="60" stroke="#eee"/><line x1="15" y1="25" x2="150" y2="25" stroke="#eee"/><text x="8" y="98" font-size="8" text-anchor="end">0</text><text x="8" y="63" font-size="8" text-anchor="end">5</text><text x="8" y="28" font-size="8" text-anchor="end">10</text><rect x="35" y="60" width="16" height="35" fill="#3B6BA5"/><rect x="70" y="60" width="16" height="35" fill="#E0465A"/><rect x="105" y="60" width="16" height="35" fill="#2DAA6E"/><text x="43" y="108" font-size="8" text-anchor="middle">사과</text><text x="78" y="108" font-size="8" text-anchor="middle">바나나</text><text x="113" y="108" font-size="8" text-anchor="middle">포도</text></g><g transform="translate(525,0)"><text x="60" y="14" font-size="12" font-weight="700" text-anchor="middle">④</text><line x1="15" y1="95" x2="150" y2="95" stroke="#999"/><line x1="15" y1="60" x2="150" y2="60" stroke="#eee"/><line x1="15" y1="25" x2="150" y2="25" stroke="#eee"/><text x="8" y="98" font-size="8" text-anchor="end">0</text><text x="8" y="63" font-size="8" text-anchor="end">5</text><text x="8" y="28" font-size="8" text-anchor="end">10</text><rect x="35" y="67" width="16" height="28" fill="#3B6BA5"/><rect x="70" y="46" width="16" height="49" fill="#E0465A"/><rect x="105" y="53" width="16" height="42" fill="#2DAA6E"/><text x="43" y="108" font-size="8" text-anchor="middle">사과</text><text x="78" y="108" font-size="8" text-anchor="middle">바나나</text><text x="113" y="108" font-size="8" text-anchor="middle">포도</text></g></svg>',
+  text:"위 표의 자료를 막대그래프로 바르게 나타낸 것은 몇 번인가요? (번호로 답)"},
+ {qid:"R5Q6",grade:5,unit:"다각형의 둘레와 넓이(그림)",answer:"24",
+  img:'<svg viewBox="0 0 150 100"><rect x="20" y="20" width="90" height="55" fill="#EAF2FB" stroke="#1B2E4A" stroke-width="2"/><text x="55" y="15" font-size="12">6cm</text><text x="118" y="52" font-size="12">4cm</text></svg>',
+  text:"그림과 같은 직사각형의 넓이는 몇 cm²인가요? (숫자만 입력)"},
+ {qid:"R5Q7",grade:6,unit:"직육면체의 겉넓이와 부피",answer:"60",
+  img:'<svg viewBox="0 0 220 180"><polygon points="40,150 100,150 100,75 40,75" fill="#DCE9F7" stroke="#1B2E4A" stroke-width="2"/><polygon points="40,75 100,75 135,55 75,55" fill="#F0F6FC" stroke="#1B2E4A" stroke-width="2"/><polygon points="100,150 135,130 135,55 100,75" fill="#C9DCF0" stroke="#1B2E4A" stroke-width="2"/><text x="55" y="168" font-size="12">4cm</text><text x="112" y="118" font-size="12">3cm</text><text x="15" y="115" font-size="12">5cm</text></svg>',
+  text:"그림과 같은 직육면체의 부피는 몇 cm³인가요? (가로4cm × 세로3cm × 높이5cm, 숫자만 입력)"},
+ {qid:"R5Q8",grade:6,unit:"여러 가지 그래프(띠그래프)",answer:"2",wide:true,
+  img:'<table class="plain"><tr><th>좋아하는 계절</th><th>비율</th></tr><tr><td>봄</td><td>20%</td></tr><tr><td>여름</td><td>30%</td></tr><tr><td>가을</td><td>25%</td></tr><tr><td>겨울</td><td>15%</td></tr><tr><td>기타</td><td>10%</td></tr></table><svg viewBox="0 0 500 210"><g transform="translate(0,0)"><text x="10" y="10" font-size="12" font-weight="700">①</text><rect x="10" y="45" width="40" height="26" fill="#3B6BA5"/><rect x="50" y="45" width="60" height="26" fill="#E8833A"/><rect x="110" y="45" width="50" height="26" fill="#2DAA6E"/><rect x="160" y="45" width="30" height="26" fill="#B15CFF"/><rect x="190" y="45" width="20" height="26" fill="#CCCCCC"/><text x="30" y="24" font-size="7.5" text-anchor="middle">봄<tspan x="30" dy="9">20%</tspan></text><line x1="30" y1="29" x2="30" y2="45" stroke="#999" stroke-width="1"/><text x="80" y="55" font-size="7.5" text-anchor="middle" fill="#fff" font-weight="700">여름<tspan x="80" dy="9">30%</tspan></text><text x="135" y="55" font-size="7.5" text-anchor="middle" fill="#fff" font-weight="700">가을<tspan x="135" dy="9">25%</tspan></text><text x="175" y="24" font-size="7.5" text-anchor="middle">겨울<tspan x="175" dy="9">15%</tspan></text><line x1="175" y1="29" x2="175" y2="45" stroke="#999" stroke-width="1"/><text x="200" y="24" font-size="7.5" text-anchor="middle">기타<tspan x="200" dy="9">10%</tspan></text><line x1="200" y1="29" x2="200" y2="45" stroke="#999" stroke-width="1"/></g><g transform="translate(0,105)"><text x="10" y="10" font-size="12" font-weight="700">②</text><rect x="10" y="45" width="60" height="26" fill="#E8833A"/><rect x="70" y="45" width="50" height="26" fill="#2DAA6E"/><rect x="120" y="45" width="40" height="26" fill="#3B6BA5"/><rect x="160" y="45" width="30" height="26" fill="#B15CFF"/><rect x="190" y="45" width="20" height="26" fill="#CCCCCC"/><text x="40" y="55" font-size="7.5" text-anchor="middle" fill="#fff" font-weight="700">여름<tspan x="40" dy="9">30%</tspan></text><text x="95" y="55" font-size="7.5" text-anchor="middle" fill="#fff" font-weight="700">가을<tspan x="95" dy="9">25%</tspan></text><text x="140" y="24" font-size="7.5" text-anchor="middle">봄<tspan x="140" dy="9">20%</tspan></text><line x1="140" y1="29" x2="140" y2="45" stroke="#999" stroke-width="1"/><text x="175" y="24" font-size="7.5" text-anchor="middle">겨울<tspan x="175" dy="9">15%</tspan></text><line x1="175" y1="29" x2="175" y2="45" stroke="#999" stroke-width="1"/><text x="200" y="24" font-size="7.5" text-anchor="middle">기타<tspan x="200" dy="9">10%</tspan></text><line x1="200" y1="29" x2="200" y2="45" stroke="#999" stroke-width="1"/></g><g transform="translate(260,0)"><text x="10" y="10" font-size="12" font-weight="700">③</text><rect x="10" y="45" width="40" height="26" fill="#3B6BA5"/><rect x="50" y="45" width="40" height="26" fill="#E8833A"/><rect x="90" y="45" width="40" height="26" fill="#2DAA6E"/><rect x="130" y="45" width="40" height="26" fill="#B15CFF"/><rect x="170" y="45" width="40" height="26" fill="#CCCCCC"/><text x="30" y="24" font-size="7.5" text-anchor="middle">봄<tspan x="30" dy="9">20%</tspan></text><line x1="30" y1="29" x2="30" y2="45" stroke="#999" stroke-width="1"/><text x="70" y="24" font-size="7.5" text-anchor="middle">여름<tspan x="70" dy="9">20%</tspan></text><line x1="70" y1="29" x2="70" y2="45" stroke="#999" stroke-width="1"/><text x="110" y="24" font-size="7.5" text-anchor="middle">가을<tspan x="110" dy="9">20%</tspan></text><line x1="110" y1="29" x2="110" y2="45" stroke="#999" stroke-width="1"/><text x="150" y="24" font-size="7.5" text-anchor="middle">겨울<tspan x="150" dy="9">20%</tspan></text><line x1="150" y1="29" x2="150" y2="45" stroke="#999" stroke-width="1"/><text x="190" y="24" font-size="7.5" text-anchor="middle">기타<tspan x="190" dy="9">20%</tspan></text><line x1="190" y1="29" x2="190" y2="45" stroke="#999" stroke-width="1"/></g><g transform="translate(260,105)"><text x="10" y="10" font-size="12" font-weight="700">④</text><rect x="10" y="45" width="30" height="26" fill="#B15CFF"/><rect x="40" y="45" width="40" height="26" fill="#3B6BA5"/><rect x="80" y="45" width="50" height="26" fill="#2DAA6E"/><rect x="130" y="45" width="60" height="26" fill="#E8833A"/><rect x="190" y="45" width="20" height="26" fill="#CCCCCC"/><text x="25" y="24" font-size="7.5" text-anchor="middle">겨울<tspan x="25" dy="9">15%</tspan></text><line x1="25" y1="29" x2="25" y2="45" stroke="#999" stroke-width="1"/><text x="60" y="24" font-size="7.5" text-anchor="middle">봄<tspan x="60" dy="9">20%</tspan></text><line x1="60" y1="29" x2="60" y2="45" stroke="#999" stroke-width="1"/><text x="105" y="55" font-size="7.5" text-anchor="middle" fill="#fff" font-weight="700">가을<tspan x="105" dy="9">25%</tspan></text><text x="160" y="55" font-size="7.5" text-anchor="middle" fill="#fff" font-weight="700">여름<tspan x="160" dy="9">30%</tspan></text><text x="200" y="24" font-size="7.5" text-anchor="middle">기타<tspan x="200" dy="9">10%</tspan></text><line x1="200" y1="29" x2="200" y2="45" stroke="#999" stroke-width="1"/></g></svg>',
+  text:"위 표(좋아하는 계절 5가지 항목)를 띠그래프로 바르게 나타낸 것은 몇 번인가요? (번호로 답)"},
+],
+};
+
+/* ===================== 상태 ===================== */
+let team=localStorage.getItem("escape_team")||"";
+let solvedIds={},randomPicks={},cooldown={};
+let dbRef=null,myLastSaveTs=0,saveTimer=null;
+let view="home",activeQid=null,pendingFinale=false;
+let videoStream=null,scanRAF=null;
+
+function findQ(qid){const rid=qid.slice(0,2);return (QUESTIONS[rid]||[]).find(q=>q.qid===qid);}
+function normalize(s){return (s||"").toString().trim().replace(/\s+/g,"").toLowerCase();}
+function roomProgress(rid){return QUESTIONS[rid].filter(q=>solvedIds[q.qid]).length;}
+function totalKeys(){return ROOMS.filter(r=>roomProgress(r.id)===8).length;}
+function loadLocal(){
+  if(!team)return;
+  try{const d=JSON.parse(localStorage.getItem("escape_state_"+team)||"{}");solvedIds=d.solvedIds||{};randomPicks=d.randomPicks||{};cooldown=d.cooldown||{};}catch(e){}
+}
+function persistLocal(){if(!team)return;localStorage.setItem("escape_state_"+team,JSON.stringify({solvedIds,randomPicks,cooldown}));}
+
+function connectFirebase(){
+  if(!team)return;
+  dbRef=db.ref("escape_data/team"+team);
+  dbRef.on("value",snap=>{
+    setSync("on");
+    const d=snap.val();
+    if(!d)return;
+    if(d.ts&&Math.abs(d.ts-myLastSaveTs)<2000)return;
+    solvedIds=d.solvedIds||{};randomPicks=d.randomPicks||{};cooldown=d.cooldown||{};
+    persistLocal();
+    if(view==="home")renderHome();
+  },()=>setSync("err"));
+}
+function setSync(s){
+  const dot=document.getElementById("syncDot"),txt=document.getElementById("syncTxt");
+  if(!dot)return;
+  dot.className="sync-dot "+(s==="on"?"sync-on":s==="err"?"sync-err":"sync-off");
+  txt.textContent=s==="on"?"연동중":s==="err"?"연결 오류(오프라인 저장중)":"연결 중";
+}
+function saveCloud(){
+  persistLocal();
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    if(!dbRef)return;
+    myLastSaveTs=Date.now();
+    dbRef.set({solvedIds,randomPicks,cooldown,ts:myLastSaveTs}).then(()=>setSync("on")).catch(()=>setSync("err"));
+  },400);
+}
+
+/* ===================== 렌더 ===================== */
+const app=document.getElementById("app");
+function setHeader(){
+  document.getElementById("hdTeam").textContent=team?(team+"조"):"조 선택 전";
+}
+
+function renderTeamSelect(){
+  setHeader();
+  let h='<div class="card"><h2 style="font-size:16px;margin-bottom:6px;">이 태블릿은 몇 조인가요?</h2><p style="font-size:12px;color:var(--tx2);">선생님이 배정한 조를 선택하세요.</p></div><div class="team-grid">';
+  for(let i=1;i<=5;i++)h+='<button class="team-btn" onclick="pickTeam('+i+')">'+i+'조</button>';
+  h+="</div>";
+  app.innerHTML=h;
+}
+function pickTeam(n){
+  team=String(n);
+  localStorage.setItem("escape_team",team);
+  loadLocal();
+  connectFirebase();
+  view="home";renderHome();
+}
+function switchTeam(){
+  if(!confirm("다른 조로 바꿀까요? (현재 조의 진행상황은 그대로 서버에 보관됩니다)"))return;
+  team="";localStorage.removeItem("escape_team");
+  if(dbRef){dbRef.off();dbRef=null;}
+  solvedIds={};randomPicks={};cooldown={};
+  view="teamselect";renderTeamSelect();
+}
+
+function renderHome(){
+  setHeader();
+  const keys=totalKeys();
+  let h="";
+  if(keys===5){
+    h+='<div class="finale"><div class="em">🎉🔑✨</div><h2>황금열쇠 완성!</h2><p>5개 방 40문제를 모두 풀었어요!<br>선생님께 완료를 알려주세요.</p></div>';
+  }
+  h+='<div class="keys-bar">';
+  for(let i=0;i<5;i++)h+='<span class="k'+(i<keys?" on":"")+'">🔑</span>';
+  h+='<span class="keys-txt">'+keys+' / 5 조각 모음</span></div>';
+  h+='<div class="room-grid">';
+  ROOMS.forEach(r=>{
+    const p=roomProgress(r.id),done=p===8;
+    h+='<div class="room-card'+(done?" done":"")+'"><div class="room-emoji">'+r.emoji+"</div>"
+      +'<div class="room-name">'+r.name+"</div>"
+      +'<div class="room-prog">'+(done?"✅ 완료!":p+" / 8")+"</div>"
+      +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div></div>';
+  });
+  h+="</div>";
+  h+='<div style="height:90px"></div>';
+  h+='<div class="team-switch" onclick="switchTeam()">조 변경</div>';
+  h+='<div class="scan-fab"><button class="btn btn-lg btn-primary" onclick="openScan()">📷 QR 스캔하기</button></div>';
+  app.innerHTML=h;
+  if(pendingFinale){pendingFinale=false;showFinaleModal();}
+}
+function showFinaleModal(){
+  const ov=document.createElement("div");
+  ov.className="modal-ov";
+  ov.innerHTML='<div class="modal-box"><div class="em">🎉🔑✨</div><h3>황금열쇠 완성!</h3><p>5개 방 40문제를 모두 풀었어요!<br>선생님께 완료를 알려주세요.</p><button class="btn btn-lg btn-primary" onclick="this.closest(\'.modal-ov\').remove()">확인</button></div>';
+  document.body.appendChild(ov);
+}
+
+function openScan(){
+  view="scan";
+  app.innerHTML='<div class="scan-wrap"><div class="top-back" onclick="goHome()">← 홈으로</div>'
+    +'<div class="cam-box"><video id="vid" playsinline muted autoplay></video><div class="cam-frame"></div></div>'
+    +'<div class="cam-msg" id="camMsg">카메라를 QR 코드에 비춰주세요</div>'
+    +'<div class="manual-box"><h4>카메라가 안 되면 문제 번호를 직접 입력하세요 (예: R1Q1)</h4>'
+    +'<div class="manual-row"><input class="txt-inp" id="manualInp" placeholder="R1Q1" maxlength="5"><button class="btn btn-sub" style="padding:0 16px" onclick="submitManual()">확인</button></div></div>'
+    +"</div>";
+  document.getElementById("manualInp").addEventListener("keydown",e=>{if(e.key==="Enter")submitManual();});
+  startCamera();
+}
+function goHome(){stopCamera();view="home";renderHome();}
+function submitManual(){
+  const v=document.getElementById("manualInp").value.trim().toUpperCase();
+  if(!/^R[1-5]Q[1-8]$/.test(v)){alert("문제 번호 형식이 올바르지 않아요. 예: R1Q1");return;}
+  stopCamera();handleScan(v);
+}
+async function startCamera(){
+  try{
+    videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    const vid=document.getElementById("vid");
+    if(!vid)return;
+    vid.srcObject=videoStream;
+    const canvas=document.createElement("canvas");
+    const ctx=canvas.getContext("2d",{willReadFrequently:true});
+    function tick(){
+      if(view!=="scan")return;
+      if(vid.readyState===vid.HAVE_ENOUGH_DATA){
+        canvas.width=vid.videoWidth;canvas.height=vid.videoHeight;
+        ctx.drawImage(vid,0,0,canvas.width,canvas.height);
+        const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code=jsQR(img.data,img.width,img.height);
+        if(code&&code.data){
+          const v=code.data.trim().toUpperCase();
+          if(/^R[1-5]Q[1-8]$/.test(v)){stopCamera();handleScan(v);return;}
+        }
+      }
+      scanRAF=requestAnimationFrame(tick);
+    }
+    scanRAF=requestAnimationFrame(tick);
+  }catch(e){
+    const msg=document.getElementById("camMsg");
+    if(msg)msg.textContent="카메라를 사용할 수 없어요. 아래에 문제 번호를 직접 입력하세요.";
+  }
+}
+function stopCamera(){
+  if(scanRAF)cancelAnimationFrame(scanRAF);
+  scanRAF=null;
+  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null;}
+}
+
+function handleScan(qid){
+  const q=findQ(qid);
+  if(!q){alert("존재하지 않는 문제예요.");view="home";renderHome();return;}
+  const rid=qid.slice(0,2);
+  if(solvedIds[qid]){showQuestionScreen(qid,"review");return;}
+  const roomQids=QUESTIONS[rid].map(x=>x.qid);
+  const solvedCount=roomQids.filter(id=>solvedIds[id]).length;
+  const requiredQid=roomQids[solvedCount];
+  if(qid!==requiredQid){showQuestionScreen(qid,"locked",requiredQid);return;}
+  showQuestionScreen(qid,"active");
+}
+
+function ensureRandomPick(q){
+  if(q.type!=="random"||randomPicks[q.qid])return;
+  let pool=q.pool;
+  if(q.exclude&&randomPicks[q.exclude]){
+    const excludeKo=randomPicks[q.exclude].ko;
+    pool=pool.filter(p=>p.ko!==excludeKo);
+  }
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  randomPicks[q.qid]={ko:pick.ko,en:pick.en};
+  saveCloud();
+}
+
+function showQuestionScreen(qid,mode,requiredQid){
+  view="question";activeQid=qid;
+  const q=findQ(qid);
+  const rid=qid.slice(0,2);
+  const room=ROOMS.find(r=>r.id===rid);
+  if(mode!=="locked")ensureRandomPick(q);
+
+  let bodyText=q.text;
+  let expectedShown="";
+  if(q.type==="random"){
+    const pick=randomPicks[qid];
+    bodyText=q.text+'<br><span style="font-size:20px;font-weight:900;color:var(--navy-g)">"'+(pick?pick.ko:"")+'"</span>';
+    expectedShown=pick?pick.en:"";
+  }else{
+    expectedShown=q.answer;
+  }
+
+  let h='<div class="top-back" onclick="goHome()">← 홈으로</div>';
+  h+='<div class="card">';
+  h+='<div class="q-badges"><span class="badge b-id">'+qid+"</span><span class=\"badge b-grade\">"+q.grade+"학년</span><span class=\"badge b-unit\">"+room.emoji+" "+room.name+" · "+q.unit+"</span></div>";
+
+  if(mode==="locked"){
+    h+='<div class="center-icon">🔒</div><div class="fb-box fb-lock">아직 열 수 없어요!<br>이 방은 순서대로 풀어야 해요.<br>지금 풀어야 할 문제: <b>'+requiredQid+"</b></div>";
+    h+="</div>";
+    h+='<button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
+    app.innerHTML=h;
+    return;
+  }
+
+  h+='<div class="grade-warn">⚠️ 이 문제는 <b>'+q.grade+"학년</b> 친구가 풀어주세요!</div>";
+  if(q.img)h+='<div class="qimg'+(q.wide?" wide":"")+'">'+q.img+"</div>";
+  h+='<div class="q-text">'+bodyText+"</div>";
+
+  if(mode==="review"){
+    h+='<div class="fb-box fb-review">✅ 이미 푼 문제예요<br>정답: <b>'+expectedShown+"</b></div>";
+    h+="</div>";
+    h+='<button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
+    app.innerHTML=h;
+    return;
+  }
+
+  // active
+  h+='<div class="ans-row"><input class="txt-inp" id="ansInp" placeholder="정답 입력" autocomplete="off" autocapitalize="off"><button class="btn btn-green" id="submitBtn" style="padding:0 18px" onclick="submitAnswer()">제출</button></div>';
+  h+='<div id="fbArea"></div>';
+  h+="</div>";
+  app.innerHTML=h;
+  renderCooldown();
+  const inp=document.getElementById("ansInp");
+  if(inp){inp.addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer();});inp.focus();}
+}
+
+function renderCooldown(){
+  const qid=activeQid;const c=cooldown[qid];
+  const fb=document.getElementById("fbArea");
+  const btn=document.getElementById("submitBtn");
+  if(!fb)return;
+  const now=Date.now();
+  if(c&&c.until>now){
+    const remain=Math.ceil((c.until-now)/1000);
+    fb.innerHTML='<div class="cooldown-txt">오답! '+remain+'초 후 다시 시도할 수 있어요.</div>';
+    if(btn)btn.disabled=true;
+    setTimeout(()=>{if(view==="question"&&activeQid===qid)renderCooldown();},500);
+  }else{
+    if(btn)btn.disabled=false;
+  }
+}
+
+function submitAnswer(){
+  const qid=activeQid,q=findQ(qid);
+  const c=cooldown[qid];
+  if(c&&c.until>Date.now())return;
+  const inp=document.getElementById("ansInp");
+  const val=inp?inp.value:"";
+  const expected=q.type==="random"?(randomPicks[qid]?randomPicks[qid].en:""):q.answer;
+  const fb=document.getElementById("fbArea");
+  if(normalize(val)===normalize(expected)){
+    solvedIds[qid]=true;
+    delete cooldown[qid];
+    saveCloud();
+    const rid=qid.slice(0,2);
+    const roomDone=roomProgress(rid)===8;
+    const allDone=totalKeys()===5;
+    if(allDone)pendingFinale=true;
+    fb.innerHTML='<div class="fb-box fb-ok">🎉 정답입니다!<br>'+(roomDone?"이 방을 모두 클리어했어요! 황금열쇠 조각을 얻었습니다 🔑":"방 안 어딘가에 숨겨진 다음 QR 코드를 찾아보세요!")+'</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="openScan()">📷 다음 QR 스캔하기</button><button class="btn btn-lg btn-sub" style="margin-top:8px" onclick="goHome()">홈으로</button>';
+    if(inp)inp.disabled=true;
+    const sb=document.getElementById("submitBtn");if(sb)sb.disabled=true;
+  }else{
+    const attempts=((c&&c.attempts)||0)+1;
+    const wait=attempts>=2?60:10;
+    cooldown[qid]={until:Date.now()+wait*1000,attempts};
+    saveCloud();
+    fb.innerHTML='<div class="fb-box fb-bad">❌ 정답이 아니에요. 다시 시도해보세요!</div>';
+    if(inp){inp.value="";}
+    renderCooldown();
+  }
+}
+
+/* ===================== 시작 ===================== */
+if(team){loadLocal();connectFirebase();renderHome();}
+else{view="teamselect";renderTeamSelect();}
+</script>
+</body>
+</html>
