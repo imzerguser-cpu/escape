@@ -53,17 +53,18 @@ th{background:#F0F3F7;font-size:11px;}
   </div>
 </div>
 <div class="wrap">
+  <div id="globalErr" style="display:none;color:#E0465A;background:#FDEEEF;border:1px solid #F5C6CB;border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;"></div>
   <div id="viewDash"></div>
   <div id="viewQr" style="display:none"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <script>
 window.addEventListener("error",function(e){
-  const el=document.getElementById("viewDash");
-  if(el)el.innerHTML='<div class="card" style="color:#E0465A"><b>화면 오류가 발생했어요.</b><br>'+e.message+'<br><br>학교 와이파이가 구글 서버(Firebase) 접속을 막고 있을 수 있어요. 새로고침해보거나 다른 네트워크로 접속해보세요.</div>';
+  const el=document.getElementById("globalErr");
+  if(el){el.style.display="";el.innerHTML='<b>화면 오류가 발생했어요.</b><br>'+e.message+'<br><br>학교 와이파이가 구글 서버(Firebase/CDN) 접속을 막고 있을 수 있어요. 새로고침해보거나 다른 네트워크로 접속해보세요.';}
 });
 firebase.initializeApp({apiKey:"AIzaSyAKbtiQ1UutXkGI2ozyTNDO3N20NQ9vjDE",authDomain:"jump-rope-43833.firebaseapp.com",databaseURL:"https://jump-rope-43833-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"jump-rope-43833",storageBucket:"jump-rope-43833.firebasestorage.app",messagingSenderId:"870652268913",appId:"1:870652268913:web:6b45cabb7e317827b1a6d0"});
 const db=firebase.database();
@@ -142,10 +143,21 @@ function renderQrPage(){
     h+="</div></div>";
   });
   document.getElementById("viewQr").innerHTML=h;
+  if(typeof QRCode==="undefined"){
+    const el=document.getElementById("globalErr");
+    if(el){el.style.display="";el.innerHTML="<b>QR 생성 라이브러리를 불러오지 못했어요.</b><br>새로고침해보거나 다른 네트워크로 접속해보세요.";}
+    return;
+  }
   ROOMS.forEach(r=>{
     QMETA[r.id].forEach(q=>{
       const cv=document.getElementById("qr_"+q[0]);
-      QRCode.toCanvas(cv,q[0],{width:140,margin:1},function(){});
+      try{
+        QRCode.toCanvas(cv,q[0],{width:140,margin:1},function(err){
+          if(err&&cv)cv.replaceWith(document.createTextNode("QR 생성 실패: "+q[0]));
+        });
+      }catch(e){
+        if(cv)cv.replaceWith(document.createTextNode("QR 생성 실패: "+q[0]));
+      }
     });
   });
 }
