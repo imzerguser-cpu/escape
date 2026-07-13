@@ -61,6 +61,10 @@ th{background:#F0F3F7;font-size:11px;}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script>
+window.addEventListener("error",function(e){
+  const el=document.getElementById("viewDash");
+  if(el)el.innerHTML='<div class="card" style="color:#E0465A"><b>화면 오류가 발생했어요.</b><br>'+e.message+'<br><br>학교 와이파이가 구글 서버(Firebase) 접속을 막고 있을 수 있어요. 새로고침해보거나 다른 네트워크로 접속해보세요.</div>';
+});
 firebase.initializeApp({apiKey:"AIzaSyAKbtiQ1UutXkGI2ozyTNDO3N20NQ9vjDE",authDomain:"jump-rope-43833.firebaseapp.com",databaseURL:"https://jump-rope-43833-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"jump-rope-43833",storageBucket:"jump-rope-43833.firebasestorage.app",messagingSenderId:"870652268913",appId:"1:870652268913:web:6b45cabb7e317827b1a6d0"});
 const db=firebase.database();
 const dbRoot=db.ref("escape_data");
@@ -118,7 +122,11 @@ function resetAll(){
   for(let n=1;n<=5;n++)updates["team"+n]={solvedIds:{},randomPicks:{},cooldown:{},ts:Date.now()};
   dbRoot.set(updates).then(()=>alert("초기화되었습니다."));
 }
-dbRoot.on("value",snap=>renderDash(snap.val()));
+document.getElementById("viewDash").innerHTML='<div class="card">불러오는 중...</div>';
+dbRoot.on("value",
+  snap=>renderDash(snap.val()),
+  err=>{document.getElementById("viewDash").innerHTML='<div class="card" style="color:var(--red)"><b>데이터를 불러오지 못했어요.</b><br>오류: '+err.message+'<br><br>학교 와이파이가 Firebase(구글 서버) 접속을 막고 있거나, 데이터베이스 권한 설정 문제일 수 있어요.</div>';}
+);
 
 /* ===== QR 인쇄 ===== */
 let qrRendered=false;

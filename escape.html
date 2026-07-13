@@ -111,6 +111,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
+window.addEventListener("error",function(e){
+  const el=document.getElementById("app");
+  if(el)el.innerHTML='<div class="card" style="color:#E0465A"><b>화면 오류가 발생했어요.</b><br>'+e.message+'<br><br>학교 와이파이가 구글 서버(Firebase) 접속을 막고 있을 수 있어요. 새로고침해보거나 다른 네트워크로 접속해보세요.</div>';
+});
 firebase.initializeApp({apiKey:"AIzaSyAKbtiQ1UutXkGI2ozyTNDO3N20NQ9vjDE",authDomain:"jump-rope-43833.firebaseapp.com",databaseURL:"https://jump-rope-43833-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"jump-rope-43833",storageBucket:"jump-rope-43833.firebasestorage.app",messagingSenderId:"870652268913",appId:"1:870652268913:web:6b45cabb7e317827b1a6d0"});
 const db=firebase.database();
 
