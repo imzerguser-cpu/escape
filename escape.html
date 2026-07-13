@@ -371,8 +371,16 @@ async function startCamera(){
     function tick(){
       if(view!=="scan")return;
       if(vid.readyState===vid.HAVE_ENOUGH_DATA){
-        canvas.width=vid.videoWidth;canvas.height=vid.videoHeight;
-        ctx.drawImage(vid,0,0,canvas.width,canvas.height);
+        const vw=vid.videoWidth,vh=vid.videoHeight;
+        // .cam-box는 정사각형(aspect-ratio:1/1)이고 video는 object-fit:cover로 표시됨.
+        // 화면에 실제로 보이는 정사각형 영역(짧은 변 기준)을 원본 좌표로 환산한 뒤,
+        // 그 안에서 안내 사각형(inset 14%) 영역만 잘라서 QR을 인식한다.
+        const sq=Math.min(vw,vh);
+        const sx0=(vw-sq)/2,sy0=(vh-sq)/2;
+        const inset=sq*0.14;
+        const gx=sx0+inset,gy=sy0+inset,gsize=sq*0.72;
+        canvas.width=gsize;canvas.height=gsize;
+        ctx.drawImage(vid,gx,gy,gsize,gsize,0,0,gsize,gsize);
         const img=ctx.getImageData(0,0,canvas.width,canvas.height);
         const code=jsQR(img.data,img.width,img.height);
         if(code&&code.data){
