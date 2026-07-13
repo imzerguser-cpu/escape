@@ -27,6 +27,9 @@ th{background:#F0F3F7;font-size:11px;}
 .btn{border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;padding:9px 16px;font-size:13px;}
 .btn-danger{background:var(--red);color:#fff;}
 .btn-primary{background:var(--sky);color:#fff;}
+.btn-sub{background:#F0F3F7;color:var(--navy);}
+.reset-mini{margin-top:4px;border:1px solid var(--bdr);background:#fff;color:var(--tx2);border-radius:6px;cursor:pointer;font-size:12px;padding:2px 8px;}
+.reset-mini:hover{background:#FDEEEF;color:var(--red);border-color:#F5C6CB;}
 .actions{display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;}
 .room-sec{page-break-inside:avoid;margin-bottom:22px;}
 .room-sec h2{font-size:15px;background:var(--navy);color:#fff;padding:6px 10px;border-radius:6px;margin-bottom:10px;}
@@ -95,14 +98,16 @@ function showTab(t){
 }
 
 /* ===== 대시보드 ===== */
+let lastAllData={};
 function renderDash(all){
-  all=all||{};
-  let h='<div class="actions"><button class="btn btn-danger" onclick="resetAll()">🗑 전체 진행상황 초기화</button></div>';
+  lastAllData=all||{};
+  const data=lastAllData;
+  let h='<div class="actions"><button class="btn btn-danger" onclick="resetAll()">🗑 전체 초기화 (모든 조)</button></div>';
   h+='<div class="card"><table><tr><th>조</th>';
   ROOMS.forEach(r=>h+="<th>"+r.emoji+" "+r.name+"</th>");
-  h+="<th>총 진행</th><th>🔑 열쇠</th></tr>";
+  h+="<th>총 진행</th><th>🔑 열쇠</th><th>조 초기화</th></tr>";
   for(let n=1;n<=5;n++){
-    const d=all["team"+n]||{};
+    const d=data["team"+n]||{};
     const solved=d.solvedIds||{};
     let totalSolved=0,keys=0;
     h+="<tr><td><b>"+n+"조</b></td>";
@@ -110,9 +115,11 @@ function renderDash(all){
       const cnt=QMETA[r.id].filter(q=>solved[q[0]]).length;
       totalSolved+=cnt;
       if(cnt===8)keys++;
-      h+='<td class="prog-cell '+(cnt===8?"prog-full":cnt===0?"prog-zero":"")+'">'+cnt+" / 8</td>";
+      h+='<td class="prog-cell '+(cnt===8?"prog-full":cnt===0?"prog-zero":"")+'">'+cnt+" / 8"
+        +'<br><button class="reset-mini" onclick="resetRoom('+n+",'"+r.id+"')\" title=\""+n+"조 "+r.name+' 초기화">↺</button></td>';
     });
-    h+="<td><b>"+totalSolved+" / 40</b></td><td class=\"keycount\">"+keys+" / 5</td></tr>";
+    h+="<td><b>"+totalSolved+" / 40</b></td><td class=\"keycount\">"+keys+" / 5</td>";
+    h+='<td><button class="btn btn-sub" style="padding:5px 10px;font-size:11px" onclick="resetTeam('+n+')">↺ '+n+"조 초기화</button></td></tr>";
   }
   h+="</table></div>";
   document.getElementById("viewDash").innerHTML=h;
@@ -122,6 +129,21 @@ function resetAll(){
   const updates={};
   for(let n=1;n<=5;n++)updates["team"+n]={solvedIds:{},randomPicks:{},cooldown:{},ts:Date.now()};
   dbRoot.set(updates).then(()=>alert("초기화되었습니다."));
+}
+function resetTeam(n){
+  if(!confirm(n+"조의 전체 진행상황을 초기화할까요? (5개 방 모두)"))return;
+  dbRoot.child("team"+n).set({solvedIds:{},randomPicks:{},cooldown:{},ts:Date.now()}).then(()=>alert(n+"조가 초기화되었습니다."));
+}
+function resetRoom(n,roomId){
+  const room=ROOMS.find(r=>r.id===roomId);
+  const roomName=room?room.name:roomId;
+  if(!confirm(n+"조의 '"+roomName+"' 진행상황만 초기화할까요? (다른 방 진행상황은 그대로 유지됩니다)"))return;
+  const d=lastAllData["team"+n]||{};
+  const solved=Object.assign({},d.solvedIds||{});
+  const picks=Object.assign({},d.randomPicks||{});
+  const cd=Object.assign({},d.cooldown||{});
+  QMETA[roomId].forEach(q=>{delete solved[q[0]];delete picks[q[0]];delete cd[q[0]];});
+  dbRoot.child("team"+n).set({solvedIds:solved,randomPicks:picks,cooldown:cd,ts:Date.now()}).then(()=>alert(n+"조의 '"+roomName+"'이(가) 초기화되었습니다."));
 }
 document.getElementById("viewDash").innerHTML='<div class="card">불러오는 중...</div>';
 dbRoot.on("value",

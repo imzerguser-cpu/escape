@@ -406,12 +406,12 @@ function handleScan(qid){
   const q=findQ(qid);
   if(!q){alert("존재하지 않는 문제예요.");view="home";renderHome();return;}
   const rid=qid.slice(0,2);
-  if(solvedIds[qid]){showQuestionScreen(qid,"review");return;}
+  if(solvedIds[qid]){showGradeGate(qid,"review");return;}
   const roomQids=QUESTIONS[rid].map(x=>x.qid);
   const solvedCount=roomQids.filter(id=>solvedIds[id]).length;
   const requiredQid=roomQids[solvedCount];
   if(qid!==requiredQid){showQuestionScreen(qid,"locked",requiredQid);return;}
-  showGradeGate(qid);
+  showGradeGate(qid,"active");
 }
 
 function ensureRandomPick(q){
@@ -426,7 +426,7 @@ function ensureRandomPick(q){
   saveCloud();
 }
 
-function showGradeGate(qid){
+function showGradeGate(qid,mode){
   view="question";activeQid=qid;
   const q=findQ(qid);
   const rid=qid.slice(0,2);
@@ -436,7 +436,7 @@ function showGradeGate(qid){
   h+='<div class="q-badges"><span class="badge b-id">'+qid+"</span><span class=\"badge b-grade\">"+q.grade+"학년</span><span class=\"badge b-unit\">"+room.emoji+" "+room.name+" · "+q.unit+"</span></div>";
   h+='<div class="center-icon">🙋</div>';
   h+='<div class="grade-warn" style="font-size:16px;text-align:center;">이 문제는 <b>'+q.grade+'학년</b>이 풀어야 하는 문제입니다.</div>';
-  h+='<button class="btn btn-lg btn-primary" style="margin-top:14px" onclick="showQuestionScreen(\''+qid+'\',\'active\')">확인</button>';
+  h+='<button class="btn btn-lg btn-primary" style="margin-top:14px" onclick="showQuestionScreen(\''+qid+'\',\''+mode+'\')">확인</button>';
   h+="</div>";
   app.innerHTML=h;
 }
@@ -470,7 +470,6 @@ function showQuestionScreen(qid,mode,requiredQid){
     return;
   }
 
-  if(mode==="review")h+='<div class="grade-warn">⚠️ 이 문제는 <b>'+q.grade+"학년</b> 친구가 풀어주세요!</div>";
   if(q.img)h+='<div class="qimg'+(q.wide?" wide":"")+'">'+q.img+"</div>";
   h+='<div class="q-text">'+bodyText+"</div>";
 
