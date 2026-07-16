@@ -12,7 +12,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .hd{background:linear-gradient(135deg,var(--navy),var(--navy-g));color:#fff;padding:16px 20px;}
 .hd h1{font-size:19px;}
 .hd .sub{font-size:11px;opacity:.7;margin-top:2px;}
-.tabs{display:flex;gap:2px;background:rgba(255,255,255,.15);border-radius:8px;padding:2px;margin-top:10px;max-width:320px;}
+.tabs{display:flex;gap:2px;background:rgba(255,255,255,.15);border-radius:8px;padding:2px;margin-top:10px;max-width:460px;}
+.empty-msg{color:var(--tx2);font-size:13px;padding:20px;text-align:center;}
+select.team-sel{padding:5px 8px;border-radius:6px;border:1px solid var(--bdr);font-family:inherit;font-size:12px;}
 .tab{flex:1;padding:8px 6px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:rgba(255,255,255,.7);font-family:inherit;}
 .tab.on{background:#fff;color:var(--navy);}
 .wrap{max-width:1000px;margin:0 auto;padding:18px;}
@@ -52,12 +54,14 @@ th{background:#F0F3F7;font-size:11px;}
   <div class="sub">실시간 진행 현황 · QR 코드 인쇄</div>
   <div class="tabs">
     <button class="tab on" id="tabDash" onclick="showTab('dash')">📊 대시보드</button>
+    <button class="tab" id="tabRoster" onclick="showTab('roster')">🧑‍🤝‍🧑 학생 배정</button>
     <button class="tab" id="tabQr" onclick="showTab('qr')">🖨️ QR 인쇄</button>
   </div>
 </div>
 <div class="wrap">
   <div id="globalErr" style="display:none;color:#E0465A;background:#FDEEEF;border:1px solid #F5C6CB;border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;"></div>
   <div id="viewDash"></div>
+  <div id="viewRoster" style="display:none"></div>
   <div id="viewQr" style="display:none"></div>
 </div>
 
@@ -91,14 +95,19 @@ R5:[["R5Q1",1,"덧셈"],["R5Q2",2,"덧셈"],["R5Q3",3,"길이와 시간"],["R5Q4
 
 function showTab(t){
   document.getElementById("tabDash").className="tab"+(t==="dash"?" on":"");
+  document.getElementById("tabRoster").className="tab"+(t==="roster"?" on":"");
   document.getElementById("tabQr").className="tab"+(t==="qr"?" on":"");
   document.getElementById("viewDash").style.display=t==="dash"?"":"none";
+  document.getElementById("viewRoster").style.display=t==="roster"?"":"none";
   document.getElementById("viewQr").style.display=t==="qr"?"":"none";
   if(t==="qr")renderQrPage();
 }
+function escapeHtml(s){return (s||"").toString().replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
 
 /* ===== 대시보드 ===== */
 let lastAllData={};
+let lastRosterData={};
+const rosterRef=db.ref("escape_data/roster");
 function renderDash(all){
   lastAllData=all||{};
   const data=lastAllData;
@@ -110,7 +119,8 @@ function renderDash(all){
     const d=data["team"+n]||{};
     const solved=d.solvedIds||{};
     let totalSolved=0,keys=0;
-    h+="<tr><td><b>"+n+"조</b></td>";
+    const members=Object.values(lastRosterData).filter(s=>String(s.teamId)===String(n)).map(s=>escapeHtml(s.name)+"("+s.grade+")").join(", ");
+    h+="<tr><td><b>"+n+"조</b><br><span style='font-size:9px;color:var(--tx2);font-weight:400;'>"+(members||"-")+"</span></td>";
     ROOMS.forEach(r=>{
       const cnt=QMETA[r.id].filter(q=>solved[q[0]]).length;
       totalSolved+=cnt;
@@ -150,6 +160,73 @@ dbRoot.on("value",
   snap=>renderDash(snap.val()),
   err=>{document.getElementById("viewDash").innerHTML='<div class="card" style="color:var(--red)"><b>데이터를 불러오지 못했어요.</b><br>오류: '+err.message+'<br><br>학교 와이파이가 Firebase(구글 서버) 접속을 막고 있거나, 데이터베이스 권한 설정 문제일 수 있어요.</div>';}
 );
+
+/* ===== 학생 배정 ===== */
+rosterRef.on("value",snap=>{
+  lastRosterData=snap.val()||{};
+  renderRosterTab();
+  renderDash(lastAllData);
+});
+function renderRosterTab(){
+  const keys=Object.keys(lastRosterData);
+  let h='<div class="actions"><button class="btn btn-primary" onclick="autoAssign()">🎲 자동 조 편성 (미배정 학생만)</button></div>';
+  if(keys.length===0){
+    h+='<div class="card"><div class="empty-msg">아직 로그인한 학생이 없어요. 학생이 이름과 학년을 입력하면 여기에 표시됩니다.</div></div>';
+    document.getElementById("viewRoster").innerHTML=h;
+    return;
+  }
+  const teamCounts={1:0,2:0,3:0,4:0,5:0};
+  keys.forEach(k=>{const t=lastRosterData[k].teamId;if(t)teamCounts[Number(t)]=(teamCounts[Number(t)]||0)+1;});
+  h+='<div class="card"><b>조별 인원</b> &nbsp; ';
+  for(let n=1;n<=5;n++)h+="<span style='margin-right:14px'>"+n+"조 "+(teamCounts[n]||0)+"명</span>";
+  const unassignedCnt=keys.filter(k=>!lastRosterData[k].teamId).length;
+  h+="<span style='color:var(--tx2)'>미배정 "+unassignedCnt+"명</span></div>";
+  h+='<div class="card"><table><tr><th>이름</th><th>학년</th><th>조 배정</th><th>삭제</th></tr>';
+  keys.sort((a,b)=>{
+    const A=lastRosterData[a],B=lastRosterData[b];
+    if(A.grade!==B.grade)return A.grade-B.grade;
+    return (A.name||"").localeCompare(B.name||"","ko");
+  }).forEach(key=>{
+    const s=lastRosterData[key];
+    h+="<tr><td><b>"+escapeHtml(s.name||key)+"</b></td><td>"+s.grade+"학년</td>";
+    h+='<td><select class="team-sel" onchange="assignTeam(\''+key+'\',this.value)">';
+    h+='<option value=""'+(!s.teamId?" selected":"")+'>미배정</option>';
+    for(let n=1;n<=5;n++)h+='<option value="'+n+'"'+(String(s.teamId)===String(n)?" selected":"")+'>'+n+'조</option>';
+    h+='</select></td>';
+    h+='<td><button class="btn btn-danger" style="padding:5px 10px;font-size:11px" onclick="deleteRoster(\''+key+'\')">🗑</button></td></tr>';
+  });
+  h+="</table></div>";
+  document.getElementById("viewRoster").innerHTML=h;
+}
+function assignTeam(key,val){
+  rosterRef.child(key).child("teamId").set(val?val:null);
+}
+function deleteRoster(key){
+  const name=(lastRosterData[key]&&lastRosterData[key].name)||key;
+  if(!confirm(name+" 학생을 명단에서 삭제할까요?"))return;
+  rosterRef.child(key).remove();
+}
+function autoAssign(){
+  const keys=Object.keys(lastRosterData);
+  const unassigned=keys.filter(k=>!lastRosterData[k].teamId);
+  if(unassigned.length===0){alert("배정할 학생이 없어요. (모두 배정되었거나 로그인한 학생이 없어요)");return;}
+  const teamCounts=[0,0,0,0,0];
+  keys.forEach(k=>{const t=lastRosterData[k].teamId;if(t)teamCounts[Number(t)-1]++;});
+  const byGrade={};
+  unassigned.forEach(k=>{const g=lastRosterData[k].grade;(byGrade[g]=byGrade[g]||[]).push(k);});
+  const updates={};
+  Object.keys(byGrade).sort((a,b)=>a-b).forEach(g=>{
+    const list=byGrade[g];
+    for(let i=list.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[list[i],list[j]]=[list[j],list[i]];}
+    list.forEach(k=>{
+      let best=0;
+      for(let t=1;t<5;t++)if(teamCounts[t]<teamCounts[best])best=t;
+      updates["roster/"+k+"/teamId"]=String(best+1);
+      teamCounts[best]++;
+    });
+  });
+  db.ref("escape_data").update(updates).then(()=>alert(unassigned.length+"명을 조에 배정했습니다."));
+}
 
 /* ===== QR 인쇄 ===== */
 let qrRendered=false;

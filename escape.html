@@ -27,11 +27,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .btn-danger{background:var(--red);color:#fff;}
 .btn-green{background:var(--green);color:#fff;}
 .card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:18px;margin-bottom:14px;}
-/* 팀 선택 */
+/* 이름/학년 선택 */
+.name-row{display:flex;gap:8px;}
 .team-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
 @media(min-width:480px){.team-grid{grid-template-columns:repeat(3,1fr);}}
 .team-btn{padding:26px 10px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;background:#fff;box-shadow:var(--sh);font-size:20px;font-weight:900;color:var(--navy);transition:.12s;}
 .team-btn:active{transform:scale(.96);background:var(--sky-p);}
+.team-btn.picked{background:var(--sky-p);box-shadow:inset 0 0 0 2px var(--sky);}
 /* 홈 */
 .keys-bar{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px;background:linear-gradient(135deg,#FFF7E0,#FFEFC2);border-radius:var(--r);margin-bottom:14px;border:1px solid #F0DFA0;}
 .keys-bar .k{font-size:26px;filter:grayscale(1) opacity(.35);}
@@ -103,7 +105,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <div class="hd-title">🔑 방탈출 놀이</div>
     <div class="hd-team" id="hdTeam">조 선택 전</div>
   </div>
-  <div class="sync-ind"><span class="sync-dot sync-off" id="syncDot"></span><span id="syncTxt">연결 중</span></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button id="hdLogout" onclick="logout()" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;">🚪 로그아웃</button>
+    <div class="sync-ind"><span class="sync-dot sync-off" id="syncDot"></span><span id="syncTxt">연결 중</span></div>
+  </div>
 </div>
 <div class="wrap" id="app"></div>
 
@@ -238,12 +243,19 @@ R5:[
 };
 
 /* ===================== 상태 ===================== */
+let myName=localStorage.getItem("escape_name")||"";
+let myGrade=localStorage.getItem("escape_grade")||"";
+let safeKey=localStorage.getItem("escape_key")||"";
 let team=localStorage.getItem("escape_team")||"";
 let solvedIds={},randomPicks={},cooldown={};
 let dbRef=null,myLastSaveTs=0,saveTimer=null;
-let view="home",activeQid=null,pendingFinale=false;
+let rosterAllRef=null,rosterAll={},teamGrades=new Set();
+let pickedGrade=null;
+let view="name",activeQid=null,pendingFinale=false;
 let videoStream=null,scanRAF=null;
 
+function sanitizeKey(name){return name.trim().replace(/[.#$\[\]\/]/g,"_").slice(0,40);}
+function escapeHtml(s){return (s||"").toString().replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
 function findQ(qid){const rid=qid.slice(0,2);return (QUESTIONS[rid]||[]).find(q=>q.qid===qid);}
 function normalize(s){return (s||"").toString().trim().replace(/\s+/g,"").toLowerCase();}
 function roomProgress(rid){return QUESTIONS[rid].filter(q=>solvedIds[q.qid]).length;}
@@ -267,6 +279,36 @@ function connectFirebase(){
     if(view==="home")renderHome();
   },()=>setSync("err"));
 }
+function computeTeamGrades(){
+  teamGrades=new Set();
+  Object.values(rosterAll).forEach(s=>{if(s&&team&&String(s.teamId)===team)teamGrades.add(Number(s.grade));});
+}
+function computeEffectiveGrade(required){
+  if(teamGrades.size===0)return required;
+  if(teamGrades.has(required))return required;
+  for(let g=required+1;g<=6;g++)if(teamGrades.has(g))return g;
+  for(let g=required-1;g>=1;g--)if(teamGrades.has(g))return g;
+  return required;
+}
+function connectRoster(){
+  if(!safeKey)return;
+  rosterAllRef=db.ref("escape_data/roster");
+  rosterAllRef.on("value",snap=>{
+    rosterAll=snap.val()||{};
+    const mine=rosterAll[safeKey];
+    const assignedTeam=(mine&&mine.teamId)?String(mine.teamId):"";
+    if(assignedTeam&&assignedTeam!==team){
+      team=assignedTeam;
+      localStorage.setItem("escape_team",team);
+      loadLocal();
+      connectFirebase();
+    }
+    computeTeamGrades();
+    if(!assignedTeam&&view!=="name"){view="waiting";renderWaiting();}
+    else if(assignedTeam&&view==="waiting"){view="home";renderHome();}
+    else if(view==="home"){renderHome();}
+  });
+}
 function setSync(s){
   const dot=document.getElementById("syncDot"),txt=document.getElementById("syncTxt");
   if(!dot)return;
@@ -286,29 +328,64 @@ function saveCloud(){
 /* ===================== 렌더 ===================== */
 const app=document.getElementById("app");
 function setHeader(){
-  document.getElementById("hdTeam").textContent=team?(team+"조"):"조 선택 전";
+  document.getElementById("hdTeam").textContent=myName?(myName+" ("+myGrade+"학년)"+(team?(" · "+team+"조"):"")):"이름 입력 전";
+  const lo=document.getElementById("hdLogout");
+  if(lo)lo.style.display=myName?"":"none";
 }
 
-function renderTeamSelect(){
+function renderNameEntry(){
   setHeader();
-  let h='<div class="card"><h2 style="font-size:16px;margin-bottom:6px;">이 태블릿은 몇 조인가요?</h2><p style="font-size:12px;color:var(--tx2);">선생님이 배정한 조를 선택하세요.</p></div><div class="team-grid">';
-  for(let i=1;i<=5;i++)h+='<button class="team-btn" onclick="pickTeam('+i+')">'+i+'조</button>';
-  h+="</div>";
+  pickedGrade=null;
+  let h='<div class="card"><h2 style="font-size:16px;margin-bottom:6px;">이름을 입력해주세요</h2>'
+    +'<p style="font-size:12px;color:var(--tx2);">입력한 이름으로 선생님이 조를 배정해주세요. 배정될 때까지 잠시 기다리면 돼요.</p>'
+    +'<div class="name-row"><input class="txt-inp" id="nameInp" placeholder="이름 입력" maxlength="20" style="text-transform:none;"></div>'
+    +'</div>';
+  h+='<div class="card"><p style="font-size:13px;font-weight:800;color:var(--tx2);margin-bottom:10px;">학년을 선택하세요</p><div class="team-grid" id="gradeGrid">';
+  for(let i=1;i<=6;i++)h+='<button class="team-btn" id="gbtn'+i+'" onclick="pickGrade('+i+')">'+i+'학년</button>';
+  h+='</div></div>';
+  h+='<button class="btn btn-lg btn-primary" onclick="submitNameGrade()">입장하기</button>';
   app.innerHTML=h;
+  const inp=document.getElementById("nameInp");
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter")submitNameGrade();});
+  inp.focus();
 }
-function pickTeam(n){
-  team=String(n);
-  localStorage.setItem("escape_team",team);
-  loadLocal();
-  connectFirebase();
-  view="home";renderHome();
+function pickGrade(g){
+  pickedGrade=g;
+  for(let i=1;i<=6;i++){
+    const b=document.getElementById("gbtn"+i);
+    if(b)b.className="team-btn"+(i===g?" picked":"");
+  }
 }
-function switchTeam(){
-  if(!confirm("다른 조로 바꿀까요? (현재 조의 진행상황은 그대로 서버에 보관됩니다)"))return;
-  team="";localStorage.removeItem("escape_team");
+function submitNameGrade(){
+  const v=document.getElementById("nameInp").value.trim();
+  if(!v){alert("이름을 입력해주세요.");return;}
+  if(!pickedGrade){alert("학년을 선택해주세요.");return;}
+  myName=v;myGrade=String(pickedGrade);
+  safeKey=sanitizeKey(v);
+  localStorage.setItem("escape_name",myName);
+  localStorage.setItem("escape_grade",myGrade);
+  localStorage.setItem("escape_key",safeKey);
+  db.ref("escape_data/roster/"+safeKey).update({name:myName,grade:Number(myGrade),ts:Date.now()});
+  connectRoster();
+  view="waiting";renderWaiting();
+}
+function renderWaiting(){
+  setHeader();
+  app.innerHTML='<div class="card" style="text-align:center;">'
+    +'<div class="center-icon">⏳</div>'
+    +'<h2 style="font-size:16px;margin-bottom:8px;">'+escapeHtml(myName)+'('+myGrade+'학년) 님,<br>선생님이 조를 배정할 때까지 기다려주세요!</h2>'
+    +'<p style="font-size:12px;color:var(--tx2);">조가 배정되면 화면이 자동으로 넘어가요.</p>'
+    +'</div>';
+}
+function logout(){
+  if(!confirm("로그아웃할까요? (조 배정과 진행상황은 그대로 서버에 저장되어 있어서, 같은 이름으로 다시 들어오면 이어할 수 있어요)"))return;
+  myName="";myGrade="";safeKey="";team="";
+  localStorage.removeItem("escape_name");localStorage.removeItem("escape_grade");localStorage.removeItem("escape_key");localStorage.removeItem("escape_team");
   if(dbRef){dbRef.off();dbRef=null;}
-  solvedIds={};randomPicks={};cooldown={};
-  view="teamselect";renderTeamSelect();
+  if(rosterAllRef){rosterAllRef.off();rosterAllRef=null;}
+  solvedIds={};randomPicks={};cooldown={};rosterAll={};teamGrades=new Set();
+  setHeader();
+  view="name";renderNameEntry();
 }
 
 function renderHome(){
@@ -331,7 +408,6 @@ function renderHome(){
   });
   h+="</div>";
   h+='<div style="height:90px"></div>';
-  h+='<div class="team-switch" onclick="switchTeam()">조 변경</div>';
   h+='<div class="scan-fab"><button class="btn btn-lg btn-primary" onclick="openScan()">📷 QR 스캔하기</button></div>';
   app.innerHTML=h;
   if(pendingFinale){pendingFinale=false;showFinaleModal();}
@@ -431,11 +507,18 @@ function showGradeGate(qid,mode){
   const q=findQ(qid);
   const rid=qid.slice(0,2);
   const room=ROOMS.find(r=>r.id===rid);
+  const eff=computeEffectiveGrade(q.grade);
+  let warnMsg;
+  if(eff===q.grade){
+    warnMsg='이 문제는 <b>'+q.grade+'학년</b>이 풀어야 하는 문제입니다.';
+  }else{
+    warnMsg='이 문제는 원래 <b>'+q.grade+'학년</b> 문제인데, 우리 조에 '+q.grade+'학년 친구가 없어요!<br>그래서 우리 조에서는 <b>'+eff+'학년</b> 친구가 풀 수 있어요.';
+  }
   let h='<div class="top-back" onclick="goHome()">← 홈으로</div>';
   h+='<div class="card">';
   h+='<div class="q-badges"><span class="badge b-id">'+qid+"</span><span class=\"badge b-grade\">"+q.grade+"학년</span><span class=\"badge b-unit\">"+room.emoji+" "+room.name+" · "+q.unit+"</span></div>";
   h+='<div class="center-icon">🙋</div>';
-  h+='<div class="grade-warn" style="font-size:16px;text-align:center;">이 문제는 <b>'+q.grade+'학년</b>이 풀어야 하는 문제입니다.</div>';
+  h+='<div class="grade-warn" style="font-size:15px;text-align:center;line-height:1.6;">'+warnMsg+'</div>';
   h+='<button class="btn btn-lg btn-primary" style="margin-top:14px" onclick="showQuestionScreen(\''+qid+'\',\''+mode+'\')">확인</button>';
   h+="</div>";
   app.innerHTML=h;
@@ -538,8 +621,12 @@ function submitAnswer(){
 }
 
 /* ===================== 시작 ===================== */
-if(team){loadLocal();connectFirebase();renderHome();}
-else{view="teamselect";renderTeamSelect();}
+if(myName&&safeKey){
+  loadLocal();
+  connectRoster();
+  if(team){connectFirebase();view="home";renderHome();}
+  else{view="waiting";renderWaiting();}
+}else{view="name";renderNameEntry();}
 </script>
 </body>
 </html>
