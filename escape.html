@@ -87,6 +87,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .fb-review{background:#EAF2FB;color:var(--navy-g);border:1px solid #C7DCF2;}
 .center-icon{font-size:42px;text-align:center;margin-bottom:6px;}
 .cooldown-txt{font-size:12px;color:var(--tx3);text-align:center;margin-top:8px;}
+/* 풀이 공간 */
+.scr-hd{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px;}
+.scr-hd .lbl{font-size:12px;font-weight:800;color:var(--tx2);}
+.scr-hd button{border:1px solid var(--bdr);background:#fff;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--tx);cursor:pointer;font-family:inherit;}
+.canvas-wrap{position:relative;height:220px;border:1px solid var(--bdr);border-radius:10px;background:#fcfcfd;touch-action:none;overflow:hidden;}
+.canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
 .finale{text-align:center;padding:40px 16px;}
 .finale .em{font-size:64px;}
 .finale h2{font-size:22px;margin:10px 0;color:var(--navy);}
@@ -248,11 +254,13 @@ let myGrade=localStorage.getItem("escape_grade")||"";
 let safeKey=localStorage.getItem("escape_key")||"";
 let team=localStorage.getItem("escape_team")||"";
 let solvedIds={},randomPicks={},cooldown={};
+let unlocked={},helpRequest=null;
 let dbRef=null,myLastSaveTs=0,saveTimer=null;
 let rosterAllRef=null,rosterAll={},teamGrades=new Set();
 let pickedGrade=null;
 let view="name",activeQid=null,pendingFinale=false;
 let videoStream=null,scanRAF=null;
+let canvasCtx=null,drawing=false,lastX=0,lastY=0;
 
 function sanitizeKey(name){return name.trim().replace(/[.#$\[\]\/]/g,"_").slice(0,40);}
 function escapeHtml(s){return (s||"").toString().replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
@@ -272,12 +280,40 @@ function connectFirebase(){
   dbRef.on("value",snap=>{
     setSync("on");
     const d=snap.val();
-    if(!d)return;
-    if(d.ts&&Math.abs(d.ts-myLastSaveTs)<2000)return;
-    solvedIds=d.solvedIds||{};randomPicks=d.randomPicks||{};cooldown=d.cooldown||{};
-    persistLocal();
+    if(d){
+      if(!(d.ts&&Math.abs(d.ts-myLastSaveTs)<2000)){
+        solvedIds=d.solvedIds||{};randomPicks=d.randomPicks||{};cooldown=d.cooldown||{};
+        persistLocal();
+      }
+      unlocked=d.unlocked||{};
+      helpRequest=d.helpRequest||null;
+    }
     if(view==="home")renderHome();
   },()=>setSync("err"));
+}
+function requestHelp(roomId){
+  const room=ROOMS.find(r=>r.id===roomId);
+  if(!room||!dbRef)return;
+  const roomQids=QUESTIONS[roomId].map(x=>x.qid);
+  const solvedCount=roomQids.filter(id=>solvedIds[id]).length;
+  if(solvedCount>=8)return;
+  const nextQid=roomQids[solvedCount];
+  if(!confirm(room.emoji+" "+room.name+"의 다음 QR 코드를 못 찾으시겠어요?\n선생님께 도움을 요청할까요?"))return;
+  const req={qid:nextQid,roomId:roomId,roomName:room.name,ts:Date.now()};
+  dbRef.child("helpRequest").set(req).then(()=>{
+    helpRequest=req;
+    if(view==="home")renderHome();
+  });
+}
+function cancelHelp(){
+  if(dbRef)dbRef.child("helpRequest").remove();
+  helpRequest=null;
+  if(view==="home")renderHome();
+}
+function openUnlocked(qid){
+  if(dbRef)dbRef.child("helpRequest").remove();
+  helpRequest=null;
+  showGradeGate(qid,"active");
 }
 function computeTeamGrades(){
   teamGrades=new Set();
@@ -321,8 +357,18 @@ function saveCloud(){
   saveTimer=setTimeout(()=>{
     if(!dbRef)return;
     myLastSaveTs=Date.now();
-    dbRef.set({solvedIds,randomPicks,cooldown,ts:myLastSaveTs}).then(()=>setSync("on")).catch(()=>setSync("err"));
+    // update()를 써야 함: set()을 쓰면 unlocked/helpRequest 같은 다른 하위 데이터가 통째로 지워짐
+    dbRef.update({solvedIds,randomPicks,cooldown,ts:myLastSaveTs}).then(()=>setSync("on")).catch(()=>setSync("err"));
   },400);
+}
+function saveWorkSnapshot(qid){
+  if(!safeKey)return;
+  const canvas=document.getElementById("scratchCanvas");
+  if(!canvas)return;
+  try{
+    const dataUrl=canvas.toDataURL("image/png");
+    db.ref("escape_data/roster/"+safeKey+"/work/"+qid).set(dataUrl);
+  }catch(e){}
 }
 
 /* ===================== 렌더 ===================== */
@@ -401,10 +447,22 @@ function renderHome(){
   h+='<div class="room-grid">';
   ROOMS.forEach(r=>{
     const p=roomProgress(r.id),done=p===8;
+    let extra="";
+    if(!done){
+      const roomQids=QUESTIONS[r.id].map(x=>x.qid);
+      const nextQid=roomQids[p];
+      if(unlocked[nextQid]){
+        extra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="openUnlocked(\''+nextQid+'\')">🔓 선생님이 열어주셨어요!</button>';
+      }else if(helpRequest&&helpRequest.qid===nextQid){
+        extra='<div style="margin-top:6px;font-size:10px;color:#b45309;font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--tx3);font-weight:600;" onclick="cancelHelp()">요청 취소</span></div>';
+      }else{
+        extra='<div style="margin-top:6px;font-size:10px;color:var(--tx3);text-decoration:underline;cursor:pointer;" onclick="requestHelp(\''+r.id+'\')">🙋 QR을 못 찾겠어요</div>';
+      }
+    }
     h+='<div class="room-card'+(done?" done":"")+'"><div class="room-emoji">'+r.emoji+"</div>"
       +'<div class="room-name">'+r.name+"</div>"
       +'<div class="room-prog">'+(done?"✅ 완료!":p+" / 8")+"</div>"
-      +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div></div>';
+      +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div>'+extra+'</div>';
   });
   h+="</div>";
   h+='<div style="height:90px"></div>';
@@ -486,7 +544,7 @@ function handleScan(qid){
   const roomQids=QUESTIONS[rid].map(x=>x.qid);
   const solvedCount=roomQids.filter(id=>solvedIds[id]).length;
   const requiredQid=roomQids[solvedCount];
-  if(qid!==requiredQid){showQuestionScreen(qid,"locked",requiredQid);return;}
+  if(qid!==requiredQid&&!unlocked[qid]){showQuestionScreen(qid,"locked",requiredQid);return;}
   showGradeGate(qid,"active");
 }
 
@@ -547,6 +605,7 @@ function showQuestionScreen(qid,mode,requiredQid){
 
   if(mode==="locked"){
     h+='<div class="center-icon">🔒</div><div class="fb-box fb-lock">아직 열 수 없어요!<br>이 방은 순서대로 풀어야 해요.<br>지금 풀어야 할 문제: <b>'+requiredQid+"</b></div>";
+    h+='<button class="btn btn-lg btn-primary" style="margin-top:10px" onclick="requestHelp(\''+rid+"');goHome();\">🙋 선생님께 도움 요청하기</button>";
     h+="</div>";
     h+='<button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
     app.innerHTML=h;
@@ -567,11 +626,68 @@ function showQuestionScreen(qid,mode,requiredQid){
   // active
   h+='<div class="ans-row"><input class="txt-inp" id="ansInp" placeholder="정답 입력" autocomplete="off" autocapitalize="off"><button class="btn btn-green" id="submitBtn" style="padding:0 18px" onclick="submitAnswer()">제출</button></div>';
   h+='<div id="fbArea"></div>';
+  h+='<div class="scr-hd"><span class="lbl">✏️ 풀이 공간</span><button onclick="clearScratch()">🗑 지우기</button></div>';
+  h+='<div class="canvas-wrap" id="canvasWrap"><canvas id="scratchCanvas"></canvas></div>';
   h+="</div>";
   app.innerHTML=h;
   renderCooldown();
+  initCanvas();
   const inp=document.getElementById("ansInp");
   if(inp){inp.addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer();});inp.focus();}
+}
+
+function initCanvas(){
+  const wrap=document.getElementById("canvasWrap");
+  const canvas=document.getElementById("scratchCanvas");
+  if(!wrap||!canvas)return;
+  const rect=wrap.getBoundingClientRect();
+  canvas.width=rect.width||wrap.offsetWidth||300;
+  canvas.height=rect.height||wrap.offsetHeight||220;
+  canvasCtx=canvas.getContext("2d");
+  canvasCtx.lineWidth=2.5;canvasCtx.lineCap="round";canvasCtx.lineJoin="round";canvasCtx.strokeStyle="#1E2D3D";
+  function posFromClient(clientX,clientY){
+    const r=canvas.getBoundingClientRect();
+    return {x:clientX-r.left,y:clientY-r.top};
+  }
+  function startDraw(x,y){drawing=true;lastX=x;lastY=y;}
+  function moveDraw(x,y){
+    if(!drawing||!canvasCtx)return;
+    canvasCtx.beginPath();canvasCtx.moveTo(lastX,lastY);canvasCtx.lineTo(x,y);canvasCtx.stroke();
+    lastX=x;lastY=y;
+  }
+  function stopDraw(){drawing=false;}
+  canvas.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    const p=posFromClient(e.clientX,e.clientY);startDraw(p.x,p.y);
+    try{canvas.setPointerCapture(e.pointerId);}catch(err){}
+  },{passive:false});
+  canvas.addEventListener("pointermove",e=>{
+    if(!drawing)return;
+    e.preventDefault();
+    const p=posFromClient(e.clientX,e.clientY);moveDraw(p.x,p.y);
+  },{passive:false});
+  canvas.addEventListener("pointerup",stopDraw);
+  canvas.addEventListener("pointercancel",stopDraw);
+  canvas.addEventListener("pointerleave",stopDraw);
+  canvas.addEventListener("touchstart",e=>{
+    e.preventDefault();
+    const t=e.touches[0];if(!t)return;
+    const p=posFromClient(t.clientX,t.clientY);startDraw(p.x,p.y);
+  },{passive:false});
+  canvas.addEventListener("touchmove",e=>{
+    e.preventDefault();
+    const t=e.touches[0];if(!t)return;
+    const p=posFromClient(t.clientX,t.clientY);moveDraw(p.x,p.y);
+  },{passive:false});
+  canvas.addEventListener("touchend",e=>{e.preventDefault();stopDraw();},{passive:false});
+  canvas.addEventListener("touchcancel",e=>{e.preventDefault();stopDraw();},{passive:false});
+  canvas.addEventListener("mousedown",e=>{const p=posFromClient(e.clientX,e.clientY);startDraw(p.x,p.y);});
+  canvas.addEventListener("mousemove",e=>{if(drawing){const p=posFromClient(e.clientX,e.clientY);moveDraw(p.x,p.y);}});
+  window.addEventListener("mouseup",stopDraw);
+}
+function clearScratch(){
+  const canvas=document.getElementById("scratchCanvas");
+  if(canvas&&canvasCtx)canvasCtx.clearRect(0,0,canvas.width,canvas.height);
 }
 
 function renderCooldown(){
@@ -598,6 +714,7 @@ function submitAnswer(){
   const val=inp?inp.value:"";
   const expected=q.type==="random"?(randomPicks[qid]?randomPicks[qid].en:""):q.answer;
   const fb=document.getElementById("fbArea");
+  saveWorkSnapshot(qid);
   if(normalize(val)===normalize(expected)){
     solvedIds[qid]=true;
     delete cooldown[qid];

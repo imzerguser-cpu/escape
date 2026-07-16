@@ -15,6 +15,17 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .tabs{display:flex;gap:2px;background:rgba(255,255,255,.15);border-radius:8px;padding:2px;margin-top:10px;max-width:460px;}
 .empty-msg{color:var(--tx2);font-size:13px;padding:20px;text-align:center;}
 select.team-sel{padding:5px 8px;border-radius:6px;border:1px solid var(--bdr);font-family:inherit;font-size:12px;}
+.help-card{border:2px solid #F59E0B;background:#FFFBEB;}
+.help-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #FDE68A;}
+.help-row:first-of-type{border-top:none;}
+.help-title{font-weight:900;color:#92400E;margin-bottom:4px;font-size:14px;}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
+.modal-ov.show{display:flex;}
+.modal-box{background:#fff;border-radius:16px;padding:20px;max-width:760px;width:100%;max-height:85vh;overflow-y:auto;text-align:left;box-shadow:0 16px 48px rgba(0,0,0,.25);}
+.modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:sticky;top:0;background:#fff;padding-bottom:8px;}
+.modal-hd h3{font-size:16px;color:var(--navy);}
+.work-item{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--bdr);}
+.work-item img{max-width:100%;border:1px solid var(--bdr);border-radius:8px;margin-top:6px;background:#fafbfc;}
 .tab{flex:1;padding:8px 6px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:rgba(255,255,255,.7);font-family:inherit;}
 .tab.on{background:#fff;color:var(--navy);}
 .wrap{max-width:1000px;margin:0 auto;padding:18px;}
@@ -65,6 +76,13 @@ th{background:#F0F3F7;font-size:11px;}
   <div id="viewQr" style="display:none"></div>
 </div>
 
+<div class="modal-ov" id="workModalOv">
+  <div class="modal-box">
+    <div class="modal-hd"><h3 id="workModalTitle"></h3><button class="btn btn-sub" onclick="closeWorkModal()">닫기</button></div>
+    <div id="workModalBody"></div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
@@ -111,7 +129,24 @@ const rosterRef=db.ref("escape_data/roster");
 function renderDash(all){
   lastAllData=all||{};
   const data=lastAllData;
-  let h='<div class="actions"><button class="btn btn-danger" onclick="resetAll()">🗑 전체 초기화 (모든 조)</button></div>';
+
+  const helpTeams=[];
+  for(let n=1;n<=5;n++){
+    const d=data["team"+n];
+    if(d&&d.helpRequest)helpTeams.push({n,hr:d.helpRequest});
+  }
+  let helpHtml="";
+  if(helpTeams.length>0){
+    helpHtml='<div class="card help-card"><div class="help-title">🙋 도움 요청 ('+helpTeams.length+'건)</div>';
+    helpTeams.forEach(({n,hr})=>{
+      helpHtml+='<div class="help-row"><div style="flex:1;font-size:13px;"><b>'+n+'조</b>가 <b>'+escapeHtml(hr.roomName||"")+'</b>에서 <b>'+escapeHtml(hr.qid||"")+'</b> 문제를 못 찾겠대요.</div>'
+        +'<button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="approveHelp('+n+",'"+hr.qid+'\')">🔓 열어주기</button>'
+        +'<button class="btn btn-sub" style="padding:6px 12px;font-size:12px" onclick="dismissHelp('+n+')">무시</button></div>';
+    });
+    helpHtml+='</div>';
+  }
+
+  let h=helpHtml+'<div class="actions"><button class="btn btn-danger" onclick="resetAll()">🗑 전체 초기화 (모든 조)</button></div>';
   h+='<div class="card"><table><tr><th>조</th>';
   ROOMS.forEach(r=>h+="<th>"+r.emoji+" "+r.name+"</th>");
   h+="<th>총 진행</th><th>🔑 열쇠</th><th>조 초기화</th></tr>";
@@ -155,6 +190,13 @@ function resetRoom(n,roomId){
   QMETA[roomId].forEach(q=>{delete solved[q[0]];delete picks[q[0]];delete cd[q[0]];});
   dbRoot.child("team"+n).set({solvedIds:solved,randomPicks:picks,cooldown:cd,ts:Date.now()}).then(()=>alert(n+"조의 '"+roomName+"'이(가) 초기화되었습니다."));
 }
+function approveHelp(n,qid){
+  dbRoot.child("team"+n).child("unlocked").child(qid).set(true);
+  dbRoot.child("team"+n).child("helpRequest").remove();
+}
+function dismissHelp(n){
+  dbRoot.child("team"+n).child("helpRequest").remove();
+}
 document.getElementById("viewDash").innerHTML='<div class="card">불러오는 중...</div>';
 dbRoot.on("value",
   snap=>renderDash(snap.val()),
@@ -181,7 +223,7 @@ function renderRosterTab(){
   for(let n=1;n<=5;n++)h+="<span style='margin-right:14px'>"+n+"조 "+(teamCounts[n]||0)+"명</span>";
   const unassignedCnt=keys.filter(k=>!lastRosterData[k].teamId).length;
   h+="<span style='color:var(--tx2)'>미배정 "+unassignedCnt+"명</span></div>";
-  h+='<div class="card"><table><tr><th>이름</th><th>학년</th><th>조 배정</th><th>삭제</th></tr>';
+  h+='<div class="card"><table><tr><th>이름</th><th>학년</th><th>조 배정</th><th>풀이 보기</th><th>삭제</th></tr>';
   keys.sort((a,b)=>{
     const A=lastRosterData[a],B=lastRosterData[b];
     if(A.grade!==B.grade)return A.grade-B.grade;
@@ -193,6 +235,7 @@ function renderRosterTab(){
     h+='<option value=""'+(!s.teamId?" selected":"")+'>미배정</option>';
     for(let n=1;n<=5;n++)h+='<option value="'+n+'"'+(String(s.teamId)===String(n)?" selected":"")+'>'+n+'조</option>';
     h+='</select></td>';
+    h+='<td><button class="btn btn-primary" style="padding:5px 10px;font-size:11px" onclick="viewWork(\''+key+'\')">📝 보기</button></td>';
     h+='<td><button class="btn btn-danger" style="padding:5px 10px;font-size:11px" onclick="deleteRoster(\''+key+'\')">🗑</button></td></tr>';
   });
   h+="</table></div>";
@@ -205,6 +248,29 @@ function deleteRoster(key){
   const name=(lastRosterData[key]&&lastRosterData[key].name)||key;
   if(!confirm(name+" 학생을 명단에서 삭제할까요?"))return;
   rosterRef.child(key).remove();
+}
+function viewWork(key){
+  const name=(lastRosterData[key]&&lastRosterData[key].name)||key;
+  document.getElementById("workModalTitle").textContent=name+" 학생의 풀이 과정";
+  document.getElementById("workModalBody").innerHTML='<p style="color:#888">불러오는 중...</p>';
+  document.getElementById("workModalOv").className="modal-ov show";
+  rosterRef.child(key).child("work").once("value").then(snap=>{
+    const work=snap.val()||{};
+    let body="";
+    ROOMS.forEach(r=>{
+      const qs=QMETA[r.id].filter(q=>work[q[0]]);
+      if(qs.length===0)return;
+      body+="<h4 style='margin:12px 0 4px;color:var(--navy)'>"+r.emoji+" "+r.name+"</h4>";
+      qs.forEach(q=>{
+        body+='<div class="work-item"><b>'+q[0]+"</b> · "+q[1]+"학년 · "+escapeHtml(q[2])+"<br><img src='"+work[q[0]]+"' alt='"+q[0]+" 풀이'></div>";
+      });
+    });
+    if(!body)body="<p style='color:#888'>아직 저장된 풀이가 없어요. (학생이 문제를 제출하면 그때 풀이 공간이 저장돼요)</p>";
+    document.getElementById("workModalBody").innerHTML=body;
+  });
+}
+function closeWorkModal(){
+  document.getElementById("workModalOv").className="modal-ov";
 }
 function autoAssign(){
   const keys=Object.keys(lastRosterData);
