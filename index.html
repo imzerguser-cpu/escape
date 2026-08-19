@@ -495,7 +495,136 @@ function showTab(t){
   if(t==="questions")renderQuestionsTab();
 }
 function renderDash(all){
-  document.getElementById("viewDash").innerHTML='<div class="card">대시보드는 다음 작업(Task 7)에서 채워집니다.</div>';
+  lastAllData=all||{};
+  const data=lastAllData;
+
+  const helpTeams=[];
+  for(let n=1;n<=teamCount;n++){
+    const d=data["team"+n];
+    if(d&&d.helpRequest)helpTeams.push({n,hr:d.helpRequest});
+  }
+  let helpHtml="";
+  if(helpTeams.length>0){
+    helpHtml='<div class="card help-card"><div class="help-title">🙋 도움 요청 ('+helpTeams.length+'건)</div>';
+    helpTeams.forEach(({n,hr})=>{
+      helpHtml+='<div class="help-row"><div style="flex:1;font-size:13px;"><b>'+n+'조</b>가 <b>'+escapeHtml(hr.roomName||"")+'</b>에서 <b>'+escapeHtml(hr.qid||"")+'</b> 문제를 못 찾겠대요.</div>'
+        +'<button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="approveHelp('+n+",'"+hr.qid+'\')">🔓 열어주기</button>'
+        +'<button class="btn btn-sub" style="padding:6px 12px;font-size:12px" onclick="dismissHelp('+n+')">무시</button></div>';
+    });
+    helpHtml+='</div>';
+  }
+
+  if(teamCount<1){
+    document.getElementById("viewDash").innerHTML=helpHtml+'<div class="card"><div class="empty-msg">아직 편성된 조가 없어요. "학생 배정" 탭에서 명단을 업로드해주세요.</div></div>';
+    return;
+  }
+
+  let h=helpHtml+'<div class="actions"><button class="btn btn-danger" onclick="resetAll()">🗑 전체 초기화 (모든 조)</button></div>';
+  h+='<div class="card"><table><tr><th>조</th>';
+  ROOMS.forEach(r=>h+="<th>"+r.emoji+" "+r.name+"</th>");
+  h+='<th>'+FINAL_ROOM.emoji+' 협동미션</th>';
+  h+="<th>총 진행</th><th>🔑 열쇠</th><th>조 초기화</th></tr>";
+  for(let n=1;n<=teamCount;n++){
+    const d=data["team"+n]||{};
+    const solved=d.solvedIds||{};
+    let totalSolved=0,keys=0;
+    const members=Object.values(rosterAll).filter(s=>String(s.teamId)===String(n)).map(s=>escapeHtml(s.name)+"("+s.grade+")").join(", ");
+    h+="<tr><td><b>"+n+"조</b><br><span style='font-size:9px;color:var(--tx2);font-weight:400;'>"+(members||"-")+"</span></td>";
+    ROOMS.forEach(r=>{
+      const cnt=QMETA[r.id].filter(q=>solved[q[0]]).length;
+      totalSolved+=cnt;
+      if(cnt===8)keys++;
+      h+='<td class="prog-cell '+(cnt===8?"prog-full":cnt===0?"prog-zero":"")+'">'
+        +'<span style="cursor:pointer;text-decoration:underline;" onclick="viewTeamRoom('+n+",'"+r.id+"')\">"+cnt+" / 8</span>"
+        +'<br><button class="reset-mini" onclick="resetRoom('+n+",'"+r.id+"')\" title=\""+n+"조 "+r.name+' 초기화">↺</button></td>';
+    });
+    const finalOk=!!solved["R6Q1"];
+    h+='<td class="prog-cell" style="cursor:pointer;'+(finalOk?"color:var(--green)":"")+'" onclick="viewTeamRoom('+n+",'R6')\">"+(finalOk?"✅ 완료":"—")+"</td>";
+    h+="<td><b>"+totalSolved+" / 40</b></td><td class=\"keycount\">"+keys+" / 5</td>";
+    h+='<td><button class="btn btn-sub" style="padding:5px 10px;font-size:11px" onclick="resetTeam('+n+')">↺ '+n+"조 초기화</button></td></tr>";
+  }
+  h+="</table></div>";
+  document.getElementById("viewDash").innerHTML=h;
+}
+function resetAll(){
+  if(!confirm("정말 모든 조의 진행상황을 초기화할까요?\n(리허설 후 실제 행사 전에만 사용하세요)"))return;
+  const updates={};
+  for(let n=1;n<=teamCount;n++)updates["team"+n]={solvedIds:{},randomPicks:{},cooldown:{},ts:Date.now()};
+  dbRoot.update(updates).then(()=>alert("초기화되었습니다."));
+}
+function resetTeam(n){
+  if(!confirm(n+"조의 전체 진행상황을 초기화할까요? (5개 방 + 협동미션 모두)"))return;
+  dbRoot.child("team"+n).set({solvedIds:{},randomPicks:{},cooldown:{},ts:Date.now()}).then(()=>alert(n+"조가 초기화되었습니다."));
+}
+function resetRoom(n,roomId){
+  const room=ALL_ROOMS.find(r=>r.id===roomId);
+  const roomName=room?room.name:roomId;
+  if(!confirm(n+"조의 '"+roomName+"' 진행상황만 초기화할까요? (다른 방 진행상황은 그대로 유지됩니다)"))return;
+  const d=lastAllData["team"+n]||{};
+  const solved=Object.assign({},d.solvedIds||{});
+  const picks=Object.assign({},d.randomPicks||{});
+  const cd=Object.assign({},d.cooldown||{});
+  QMETA[roomId].forEach(q=>{delete solved[q[0]];delete picks[q[0]];delete cd[q[0]];});
+  dbRoot.child("team"+n).set({solvedIds:solved,randomPicks:picks,cooldown:cd,ts:Date.now()}).then(()=>alert(n+"조의 '"+roomName+"'이(가) 초기화되었습니다."));
+}
+function approveHelp(n,qid){
+  dbRoot.child("team"+n).child("unlocked").child(qid).set(true);
+  dbRoot.child("team"+n).child("helpRequest").remove();
+}
+function dismissHelp(n){
+  dbRoot.child("team"+n).child("helpRequest").remove();
+}
+function viewTeamRoom(n,roomId){
+  const room=ALL_ROOMS.find(r=>r.id===roomId);
+  const d=lastAllData["team"+n]||{};
+  const solved=d.solvedIds||{};
+  const subs=d.submissions||{};
+  const teamGradeSet=new Set(Object.values(rosterAll).filter(s=>s&&String(s.teamId)===String(n)).map(s=>Number(s.grade)));
+  document.getElementById("workModalTitle").textContent=n+"조 · "+room.emoji+" "+room.name+" 문제 확인";
+  let body="";
+  QMETA[roomId].forEach(q=>{
+    const qid=q[0];
+    const requiredGrade=q[1];
+    const isSolved=!!solved[qid];
+    const s=subs[qid];
+    let assignHtml="";
+    if(requiredGrade){
+      const eff=RosterUtils.computeEffectiveGrade(requiredGrade,teamGradeSet,1,6);
+      const names=Object.values(rosterAll).filter(m=>m&&String(m.teamId)===String(n)&&Number(m.grade)===eff).map(m=>m.name);
+      assignHtml='<div style="font-size:11px;color:var(--tx2);margin-top:2px;">담당: '+(names.length?escapeHtml(names.join(", "))+"("+eff+"학년)":"명단 없음")+'</div>';
+    }
+    body+='<div class="work-item"><b>'+qid+'</b> · '+(requiredGrade?requiredGrade+"학년 · ":"")+escapeHtml(q[2])
+      +' &nbsp; '+(isSolved?'<span style="color:var(--green);font-weight:800">✅ 정답</span>':'<span style="color:var(--tx2)">미해결</span>')
+      +assignHtml;
+    if(s){
+      body+='<div style="font-size:12px;color:var(--tx2);margin-top:4px;">제출한 답: <b>'+escapeHtml(s.value||"")+'</b></div>';
+      if(s.work)body+="<img src='"+s.work+"' alt='풀이과정'>";
+    }else{
+      body+='<div style="font-size:12px;color:#B9C2CC;margin-top:4px;">아직 제출 기록 없음</div>';
+    }
+    if(isSolved){
+      body+='<button class="btn btn-danger" style="padding:5px 10px;font-size:11px;margin-top:6px" onclick="markWrong('+n+",'"+roomId+"','"+qid+"')\">❌ 오답 처리(다시 풀게 하기)</button>";
+    }
+    body+="</div>";
+  });
+  document.getElementById("workModalBody").innerHTML=body;
+  document.getElementById("workModalOv").className="modal-ov show";
+}
+function markWrong(n,roomId,qid){
+  if(!confirm(qid+" 문제를 오답 처리할까요?\n이 문제와 이후 문제들이 다시 풀어야 하는 상태로 초기화됩니다."))return;
+  const d=lastAllData["team"+n]||{};
+  const solved=Object.assign({},d.solvedIds||{});
+  const roomQids=QMETA[roomId].map(q=>q[0]);
+  const idx=roomQids.indexOf(qid);
+  roomQids.slice(idx).forEach(id=>{delete solved[id];});
+  const room=ALL_ROOMS.find(r=>r.id===roomId);
+  dbRoot.child("team"+n).update({
+    solvedIds:solved,
+    notice:{qid:qid,roomId:roomId,roomName:room.name,msg:"'"+qid+"' 문제를 다시 확인해주세요. 처음부터 다시 풀어야 해요.",ts:Date.now()}
+  }).then(()=>{alert("오답 처리되었습니다. 학생 화면에 안내가 표시됩니다.");closeWorkModal();});
+}
+function closeWorkModal(){
+  document.getElementById("workModalOv").className="modal-ov";
 }
 function renderRosterTab(){
   document.getElementById("viewRoster").innerHTML='<div class="card">학생 배정 화면은 다음 작업(Task 7)에서 채워집니다.</div>';
