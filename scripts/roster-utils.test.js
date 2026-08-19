@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { sanitizeKey, makeRosterKey, parseCSV, parseRosterRows, extractSheetId, buildSheetCsvUrl } = require('./roster-utils.js');
+const { sanitizeKey, makeRosterKey, parseCSV, parseRosterRows, extractSheetId, buildSheetCsvUrl, autoAssignTeams } = require('./roster-utils.js');
 
 test('sanitizeKey trims whitespace and truncates to 40 chars', () => {
   assert.equal(sanitizeKey('  홍길동  '), '홍길동');
@@ -77,4 +77,51 @@ test('buildSheetCsvUrl builds the public gviz CSV export URL', () => {
     buildSheetCsvUrl('1AbC-XyZ_123'),
     'https://docs.google.com/spreadsheets/d/1AbC-XyZ_123/gviz/tq?tqx=out:csv'
   );
+});
+
+test('autoAssignTeams assigns every student a teamId within range', () => {
+  const students = [
+    {name:'a',grade:6},{name:'b',grade:6},{name:'c',grade:5},{name:'d',grade:4},
+    {name:'e',grade:3},{name:'f',grade:3},{name:'g',grade:1}
+  ];
+  const result = autoAssignTeams(students, 3, () => 0);
+  assert.equal(result.length, 7);
+  result.forEach(s => { assert.ok(s.teamId >= 1 && s.teamId <= 3); });
+});
+
+test('autoAssignTeams balances team sizes to within 1 of each other', () => {
+  const students = [];
+  for (let i = 0; i < 20; i++) students.push({ name: 'n' + i, grade: 1 + (i % 6) });
+  const result = autoAssignTeams(students, 4, Math.random);
+  const counts = [0, 0, 0, 0];
+  result.forEach(s => counts[s.teamId - 1]++);
+  const max = Math.max(...counts), min = Math.min(...counts);
+  assert.ok(max - min <= 1, 'counts: ' + counts.join(','));
+});
+
+test('autoAssignTeams fills higher grades into teams before lower grades, round-robin', () => {
+  const students = [
+    {name:'g6a',grade:6},{name:'g6b',grade:6},{name:'g6c',grade:6},
+    {name:'g4a',grade:4},{name:'g4b',grade:4},{name:'g4c',grade:4}
+  ];
+  const result = autoAssignTeams(students, 3, () => 0);
+  const byName = Object.fromEntries(result.map(s => [s.name, s.teamId]));
+  assert.deepEqual([byName.g6a, byName.g6b, byName.g6c].sort(), [1, 2, 3]);
+  assert.deepEqual([byName.g4a, byName.g4b, byName.g4c].sort(), [1, 2, 3]);
+});
+
+test('autoAssignTeams keeps every present grade represented across teams when possible', () => {
+  const students = [];
+  [6,6,6,6,5,5,5,5,4,4,4,4].forEach((g, i) => students.push({ name: 'n' + i, grade: g }));
+  const result = autoAssignTeams(students, 4, Math.random);
+  for (let t = 1; t <= 4; t++) {
+    const grades = new Set(result.filter(s => s.teamId === t).map(s => s.grade));
+    assert.equal(grades.size, 3, 'team ' + t + ' grades: ' + [...grades]);
+  }
+});
+
+test('autoAssignTeams handles teamCount of 1 by putting everyone on team 1', () => {
+  const students = [{name:'a',grade:6},{name:'b',grade:3}];
+  const result = autoAssignTeams(students, 1, Math.random);
+  result.forEach(s => assert.equal(s.teamId, 1));
 });

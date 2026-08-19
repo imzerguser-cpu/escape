@@ -40,7 +40,31 @@ function buildSheetCsvUrl(id) {
   return "https://docs.google.com/spreadsheets/d/" + id + "/gviz/tq?tqx=out:csv";
 }
 
-const RosterUtils = { sanitizeKey, makeRosterKey, parseCSV, parseRosterRows, extractSheetId, buildSheetCsvUrl };
+function autoAssignTeams(students, teamCount, rng) {
+  rng = rng || Math.random;
+  const n = teamCount >= 1 ? teamCount : 1;
+  const byGrade = {};
+  students.forEach(s => { (byGrade[s.grade] = byGrade[s.grade] || []).push(s); });
+  const grades = Object.keys(byGrade).map(Number).sort((a, b) => b - a);
+  const counts = new Array(n).fill(0);
+  const result = [];
+  grades.forEach(g => {
+    const list = byGrade[g].slice();
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const tmp = list[i]; list[i] = list[j]; list[j] = tmp;
+    }
+    list.forEach(s => {
+      let best = 0;
+      for (let t = 1; t < n; t++) if (counts[t] < counts[best]) best = t;
+      counts[best]++;
+      result.push({ name: s.name, grade: s.grade, teamId: best + 1 });
+    });
+  });
+  return result;
+}
+
+const RosterUtils = { sanitizeKey, makeRosterKey, parseCSV, parseRosterRows, extractSheetId, buildSheetCsvUrl, autoAssignTeams };
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = RosterUtils;
