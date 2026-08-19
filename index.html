@@ -627,7 +627,140 @@ function closeWorkModal(){
   document.getElementById("workModalOv").className="modal-ov";
 }
 function renderRosterTab(){
-  document.getElementById("viewRoster").innerHTML='<div class="card">학생 배정 화면은 다음 작업(Task 7)에서 채워집니다.</div>';
+  let h='<div class="card"><h3 style="margin-bottom:8px;">명단 업로드</h3>';
+  h+='<div style="margin-bottom:10px;"><label style="font-size:12px;font-weight:700;color:var(--tx2);">조 개수&nbsp;</label><input type="number" id="teamCountInp" min="1" max="30" value="'+(teamCount||5)+'" style="width:70px;padding:6px;border:1px solid var(--bdr);border-radius:6px;"></div>';
+  h+='<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">';
+  h+='<input type="text" id="sheetUrlInp" placeholder="구글시트 링크 붙여넣기" style="flex:1;min-width:220px;padding:8px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;">';
+  h+='<button class="btn btn-primary" onclick="loadFromGoogleSheet()">불러오기</button>';
+  h+='</div>';
+  h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:14px;">※ 구글시트는 공유 설정이 "링크가 있는 모든 사용자 - 뷰어"여야 불러올 수 있어요. "학년, 이름" 두 열 형식이어야 해요.</div>';
+  h+='<div style="margin-bottom:10px;"><input type="file" id="excelFileInp" accept=".xlsx,.xls" onchange="loadFromExcelFile(this.files[0])"></div>';
+  h+='<div id="rosterUploadErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:10px;"></div>';
+  h+='</div>';
+
+  if(parsedRosterPreview){
+    h+='<div class="card"><h3 style="margin-bottom:8px;">명단 미리보기 · 확인 후 수정 가능 ('+parsedRosterPreview.length+'명)</h3>';
+    h+='<table><tr><th>학년</th><th>이름</th><th></th></tr>';
+    parsedRosterPreview.forEach((s,i)=>{
+      h+='<tr><td><input type="number" min="1" max="6" value="'+s.grade+'" style="width:50px" onchange="updatePreviewRow('+i+',\'grade\',this.value)"></td>';
+      h+='<td><input type="text" value="'+escapeHtml(s.name)+'" onchange="updatePreviewRow('+i+',\'name\',this.value)"></td>';
+      h+='<td><button class="btn btn-sub" style="padding:4px 8px;font-size:11px" onclick="removePreviewRow('+i+')">삭제</button></td></tr>';
+    });
+    h+='</table>';
+    h+='<div class="actions" style="margin-top:10px;"><button class="btn btn-sub" onclick="addPreviewRow()">+ 행 추가</button><button class="btn btn-primary" onclick="confirmAutoAssign()">이 명단으로 조 편성하기</button></div>';
+    h+='</div>';
+  }
+
+  const keys=Object.keys(rosterAll);
+  if(keys.length===0){
+    h+='<div class="card"><div class="empty-msg">아직 편성된 명단이 없어요.</div></div>';
+    document.getElementById("viewRoster").innerHTML=h;
+    return;
+  }
+  const teamCounts={};
+  for(let n=1;n<=teamCount;n++)teamCounts[n]=0;
+  keys.forEach(k=>{const t=rosterAll[k].teamId;if(t)teamCounts[Number(t)]=(teamCounts[Number(t)]||0)+1;});
+  h+='<div class="card"><b>조별 인원</b> &nbsp; ';
+  for(let n=1;n<=teamCount;n++)h+="<span style='margin-right:14px'>"+n+"조 "+(teamCounts[n]||0)+"명</span>";
+  h+='</div>';
+  h+='<div class="card"><table><tr><th>이름</th><th>학년</th><th>조 배정</th><th>삭제</th></tr>';
+  keys.sort((a,b)=>{
+    const A=rosterAll[a],B=rosterAll[b];
+    if(A.grade!==B.grade)return A.grade-B.grade;
+    return (A.name||"").localeCompare(B.name||"","ko");
+  }).forEach(key=>{
+    const s=rosterAll[key];
+    h+="<tr><td><b>"+escapeHtml(s.name||key)+"</b></td><td>"+s.grade+"학년</td>";
+    h+='<td><select class="team-sel" onchange="assignTeam(\''+key+'\',this.value)">';
+    h+='<option value=""'+(!s.teamId?" selected":"")+'>미배정</option>';
+    for(let n=1;n<=teamCount;n++)h+='<option value="'+n+'"'+(String(s.teamId)===String(n)?" selected":"")+'>'+n+'조</option>';
+    h+='</select></td>';
+    h+='<td><button class="btn btn-danger" style="padding:5px 10px;font-size:11px" onclick="deleteRoster(\''+key+'\')">🗑</button></td></tr>';
+  });
+  h+="</table></div>";
+  document.getElementById("viewRoster").innerHTML=h;
+}
+function showRosterUploadErr(msg){
+  const el=document.getElementById("rosterUploadErr");
+  if(!el)return;
+  el.style.display="";
+  el.textContent=msg;
+}
+function setParsedRoster(students){
+  const errEl=document.getElementById("rosterUploadErr");
+  if(errEl)errEl.style.display="none";
+  parsedRosterPreview=students;
+  renderRosterTab();
+}
+function updatePreviewRow(i,field,val){
+  if(!parsedRosterPreview||!parsedRosterPreview[i])return;
+  parsedRosterPreview[i][field]=field==="grade"?Number(val):val;
+}
+function removePreviewRow(i){
+  parsedRosterPreview.splice(i,1);
+  renderRosterTab();
+}
+function addPreviewRow(){
+  parsedRosterPreview.push({name:"",grade:1});
+  renderRosterTab();
+}
+async function loadFromGoogleSheet(){
+  const url=document.getElementById("sheetUrlInp").value.trim();
+  const id=RosterUtils.extractSheetId(url);
+  if(!id){showRosterUploadErr("올바른 구글시트 링크가 아니에요.");return;}
+  try{
+    const res=await fetch(RosterUtils.buildSheetCsvUrl(id));
+    if(!res.ok)throw new Error("fetch failed");
+    const text=await res.text();
+    const rows=RosterUtils.parseCSV(text);
+    const students=RosterUtils.parseRosterRows(rows);
+    if(students.length===0){showRosterUploadErr("명단을 읽지 못했어요. '학년, 이름' 두 열 형식인지 확인해주세요.");return;}
+    setParsedRoster(students);
+  }catch(e){
+    showRosterUploadErr("시트를 불러오지 못했어요. 공유 설정이 '링크가 있는 모든 사용자 - 뷰어'인지 확인해주세요.");
+  }
+}
+function loadFromExcelFile(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array"});
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(sheet,{header:1}).map(r=>r.map(c=>(c===undefined||c===null)?"":String(c)));
+      const students=RosterUtils.parseRosterRows(rows);
+      if(students.length===0){showRosterUploadErr("명단을 읽지 못했어요. '학년, 이름' 두 열 형식인지 확인해주세요.");return;}
+      setParsedRoster(students);
+    }catch(err){
+      showRosterUploadErr("엑셀 파일을 읽지 못했어요.");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function confirmAutoAssign(){
+  if(!parsedRosterPreview||parsedRosterPreview.length===0)return;
+  const n=Number(document.getElementById("teamCountInp").value)||1;
+  if(!confirm(parsedRosterPreview.length+"명을 "+n+"개 조로 편성할까요? 기존 명단/조 배정을 덮어씁니다. (방탈출 진행 기록은 그대로 유지됩니다)"))return;
+  const assigned=RosterUtils.autoAssignTeams(parsedRosterPreview,n);
+  const existingKeys=new Set();
+  const rosterUpdate={};
+  assigned.forEach(s=>{
+    const key=RosterUtils.makeRosterKey(s.name,s.grade,existingKeys);
+    existingKeys.add(key);
+    rosterUpdate[key]={name:s.name,grade:s.grade,teamId:String(s.teamId),ts:Date.now()};
+  });
+  db.ref("escape_data").update({roster:rosterUpdate,"meta/teamCount":n}).then(()=>{
+    parsedRosterPreview=null;
+    alert("조 편성이 완료되었습니다.");
+  });
+}
+function assignTeam(key,val){
+  db.ref("escape_data/roster/"+key+"/teamId").set(val?val:null);
+}
+function deleteRoster(key){
+  const name=(rosterAll[key]&&rosterAll[key].name)||key;
+  if(!confirm(name+" 학생을 명단에서 삭제할까요?"))return;
+  db.ref("escape_data/roster/"+key).remove();
 }
 
 /* ===================== 학생: 조 선택 ===================== */
