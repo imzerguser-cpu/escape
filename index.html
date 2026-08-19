@@ -492,6 +492,7 @@ function showTab(t){
   document.getElementById("viewRoster").style.display=t==="roster"?"":"none";
   document.getElementById("viewQuestions").style.display=t==="questions"?"":"none";
   document.getElementById("viewQr").style.display=t==="qr"?"":"none";
+  if(t==="questions")renderQuestionsTab();
 }
 function renderDash(all){
   document.getElementById("viewDash").innerHTML='<div class="card">대시보드는 다음 작업(Task 7)에서 채워집니다.</div>';
