@@ -492,6 +492,7 @@ function showTab(t){
   document.getElementById("viewRoster").style.display=t==="roster"?"":"none";
   document.getElementById("viewQuestions").style.display=t==="questions"?"":"none";
   document.getElementById("viewQr").style.display=t==="qr"?"":"none";
+  if(t==="qr")renderQrPage();
   if(t==="questions")renderQuestionsTab();
 }
 function renderDash(all){
@@ -1358,7 +1359,76 @@ function connectQuestionOverrides(){
   });
 }
 function renderQuestionsTab(){
-  document.getElementById("viewQuestions").innerHTML='<div class="card">문제 관리 화면은 이후 작업(Task 8)에서 채워집니다.</div>';
+  let h='<div class="card" style="font-size:12px;color:var(--tx2)">문제 내용을 고치고 저장하면 학생 화면에 바로 반영됩니다. (그림/도형은 여기서 수정할 수 없어요 — 필요하면 별도로 요청해주세요)</div>';
+  ALL_ROOMS.forEach(r=>{
+    h+='<div class="card"><h3 style="margin-bottom:6px">'+r.emoji+' '+r.name+'</h3>';
+    (QFULL[r.id]||[]).forEach(q=>{
+      const [qid,grade,unit,answer,text]=q;
+      const ov=(QOVERRIDE[r.id]&&QOVERRIDE[r.id][qid])||{};
+      const curText=ov.text!==undefined?ov.text:text;
+      const curAnswer=ov.answer!==undefined?ov.answer:answer;
+      const curUnit=ov.unit!==undefined?ov.unit:unit;
+      const curGrade=ov.grade!==undefined?ov.grade:grade;
+      const isRandom=answer===null;
+      h+='<div class="qedit">';
+      h+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;"><b>'+qid+'</b>';
+      h+='<select id="qg_'+qid+'" style="padding:4px 6px;border-radius:6px;border:1px solid var(--bdr);font-size:12px;">';
+      for(let g=0;g<=6;g++)h+='<option value="'+g+'"'+(Number(curGrade)===g?" selected":"")+'>'+(g===0?"공통":g+"학년")+'</option>';
+      h+='</select>';
+      h+='<input type="text" id="qu_'+qid+'" value="'+escapeHtml(curUnit)+'" style="flex:1;min-width:140px;"></div>';
+      h+='<textarea id="qt_'+qid+'">'+escapeHtml(curText)+'</textarea>';
+      h+='<div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;">';
+      h+='<label style="font-size:12px;color:var(--tx2)">정답</label>';
+      h+=isRandom?'<span style="font-size:11px;color:var(--tx2)">(랜덤 출제라 정답 수정 불가)</span>':'<input type="text" id="qa_'+qid+'" value="'+escapeHtml(curAnswer)+'">';
+      h+='<button class="btn btn-primary" style="padding:6px 12px;font-size:11px;margin-left:auto" onclick="saveQuestion(\''+r.id+'\',\''+qid+'\','+isRandom+')">💾 저장</button>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+  });
+  document.getElementById("viewQuestions").innerHTML=h;
+}
+function saveQuestion(rid,qid,isRandom){
+  const grade=Number(document.getElementById("qg_"+qid).value);
+  const unit=document.getElementById("qu_"+qid).value.trim();
+  const text=document.getElementById("qt_"+qid).value.trim();
+  const upd={grade,unit,text};
+  if(!isRandom){
+    const a=document.getElementById("qa_"+qid);
+    if(a)upd.answer=a.value.trim();
+  }
+  db.ref("escape_data/questions/"+rid+"/"+qid).update(upd).then(()=>alert(qid+" 문제가 저장되었습니다. 학생 화면에 바로 반영됩니다."));
+}
+let qrRendered=false;
+function renderQrPage(){
+  if(qrRendered)return;
+  qrRendered=true;
+  let h='<div class="actions"><button class="btn btn-primary" onclick="window.print()">🖨️ 인쇄하기</button></div>';
+  ALL_ROOMS.forEach(r=>{
+    h+='<div class="room-sec"><h2>'+r.emoji+" "+r.name+' <span class="no-print" style="opacity:.6;font-weight:400;">('+r.id+")</span></h2><div class=\"qr-grid\">";
+    QMETA[r.id].forEach(q=>{
+      h+='<div class="qr-card"><canvas id="qr_'+q[0]+'"></canvas><div class="qr-id">'+q[0]+'</div><div class="qr-meta">'+(q[1]?q[1]+"학년 · ":"")+q[2]+"</div><div class=\"qr-meta\">코드: "+CODES[q[0]]+"</div></div>";
+    });
+    h+="</div></div>";
+  });
+  document.getElementById("viewQr").innerHTML=h;
+  if(typeof QRCode==="undefined"){
+    const el=document.getElementById("globalErr");
+    if(el){el.style.display="";el.innerHTML="<b>QR 생성 라이브러리를 불러오지 못했어요.</b><br>새로고침해보거나 다른 네트워크로 접속해보세요.";}
+    return;
+  }
+  ALL_ROOMS.forEach(r=>{
+    QMETA[r.id].forEach(q=>{
+      const cv=document.getElementById("qr_"+q[0]);
+      const code=CODES[q[0]]||q[0];
+      try{
+        QRCode.toCanvas(cv,code,{width:140,margin:1},function(err){
+          if(err&&cv)cv.replaceWith(document.createTextNode("QR 생성 실패: "+q[0]));
+        });
+      }catch(e){
+        if(cv)cv.replaceWith(document.createTextNode("QR 생성 실패: "+q[0]));
+      }
+    });
+  });
 }
 
 /* ===================== 시작 ===================== */
