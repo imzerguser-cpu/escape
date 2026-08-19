@@ -125,3 +125,22 @@ test('autoAssignTeams handles teamCount of 1 by putting everyone on team 1', () 
   const result = autoAssignTeams(students, 1, Math.random);
   result.forEach(s => assert.equal(s.teamId, 1));
 });
+
+test('autoAssignTeams groups by grade before assigning, independent of input array order', () => {
+  const studentsGradeFirst = [
+    {name:'top',grade:6},
+    {name:'lowA',grade:1},{name:'lowB',grade:1}
+  ];
+  const studentsGradeLast = [
+    {name:'lowA',grade:1},{name:'lowB',grade:1},
+    {name:'top',grade:6}
+  ];
+  const r1 = autoAssignTeams(studentsGradeFirst, 3, () => 0);
+  const r2 = autoAssignTeams(studentsGradeLast, 3, () => 0);
+  const teamOf = (result, name) => result.find(s => s.name === name).teamId;
+  // Regardless of where the grade-6 student sits in the input array,
+  // grade is processed highest-first, so it must always land on the
+  // first (emptiest) team — team 1 under the tie-break-to-lowest-index rule.
+  assert.equal(teamOf(r1, 'top'), 1);
+  assert.equal(teamOf(r2, 'top'), 1);
+});
