@@ -1107,7 +1107,8 @@ if(sessionStorage.getItem("escape_admin_ok")==="1"){
 }else if(team){
   loadLocal();
   connectFirebase();
-  view="home";renderHome();
+  if(roomParamFromUrl&&ROOMS.some(r=>r.id===roomParamFromUrl)){view="roomDetail";renderRoomDetail(roomParamFromUrl);}
+  else{view="home";renderHome();}
 }else{
   view="teamPick";renderTeamPick();
 }
