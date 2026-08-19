@@ -544,19 +544,533 @@ function renderTeamPick(){
 function pickTeam(n){
   team=String(n);
   localStorage.setItem("escape_team",team);
+  loadLocal();
   computeTeamGrades();
   connectFirebase();
   view="home";renderHome();
 }
+function findQ(qid){
+  const rid=qid.slice(0,2);
+  const base=(QUESTIONS[rid]||[]).find(q=>q.qid===qid);
+  if(!base)return null;
+  const ov=QOVERRIDE[rid]&&QOVERRIDE[rid][qid];
+  return ov?Object.assign({},base,ov):base;
+}
+function normalize(s){return (s||"").toString().trim().replace(/\s+/g,"").toLowerCase();}
+function roomProgress(rid){return QUESTIONS[rid].filter(q=>solvedIds[q.qid]).length;}
+function totalKeys(){return ROOMS.filter(r=>roomProgress(r.id)===8).length;}
+function finalDone(){return !!solvedIds["R6Q1"];}
+function activeRoomId(){
+  for(const r of ROOMS){const p=roomProgress(r.id);if(p>0&&p<8)return r.id;}
+  return null;
+}
+function currentHelpRoomId(){
+  const active=activeRoomId();
+  if(active)return active;
+  const notDone=ROOMS.find(r=>roomProgress(r.id)<8);
+  if(notDone)return notDone.id;
+  if(totalKeys()===5&&!finalDone())return "R6";
+  return null;
+}
+function loadLocal(){
+  if(!team)return;
+  try{const d=JSON.parse(localStorage.getItem("escape_state_"+team)||"{}");solvedIds=d.solvedIds||{};randomPicks=d.randomPicks||{};cooldown=d.cooldown||{};}catch(e){}
+}
+function persistLocal(){if(!team)return;localStorage.setItem("escape_state_"+team,JSON.stringify({solvedIds,randomPicks,cooldown}));}
+function requestHelp(roomId){
+  const room=roomId==="R6"?FINAL_ROOM:ROOMS.find(r=>r.id===roomId);
+  if(!room||!dbRef)return;
+  const roomQids=QUESTIONS[roomId].map(x=>x.qid);
+  const solvedCount=roomQids.filter(id=>solvedIds[id]).length;
+  if(solvedCount>=roomQids.length)return;
+  const nextQid=roomQids[solvedCount];
+  if(!confirm(room.emoji+" "+room.name+"의 다음 QR 코드를 못 찾으시겠어요?\n선생님께 도움을 요청할까요?"))return;
+  const req={qid:nextQid,roomId:roomId,roomName:room.name,ts:Date.now()};
+  dbRef.child("helpRequest").set(req).then(()=>{
+    helpRequest=req;
+    if(view==="home")renderHome();
+  });
+}
+function cancelHelp(){
+  if(dbRef)dbRef.child("helpRequest").remove();
+  helpRequest=null;
+  if(view==="home")renderHome();
+}
+function openUnlocked(qid){
+  if(dbRef)dbRef.child("helpRequest").remove();
+  helpRequest=null;
+  const rid=qid.slice(0,2);
+  if(rid==="R6"){showQuestionScreen(qid,"active");return;}
+  showGradeGate(qid,"active");
+}
+function setSync(s){
+  const dot=document.getElementById("syncDot"),txt=document.getElementById("syncTxt");
+  if(!dot)return;
+  dot.className="sync-dot "+(s==="on"?"sync-on":s==="err"?"sync-err":"sync-off");
+  txt.textContent=s==="on"?"연동중":s==="err"?"연결 오류(오프라인 저장중)":"연결 중";
+}
+function saveCloud(){
+  persistLocal();
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    if(!dbRef)return;
+    myLastSaveTs=Date.now();
+    // update()를 써야 함: set()을 쓰면 unlocked/helpRequest/submissions 같은 다른 하위 데이터가 통째로 지워짐
+    dbRef.update({solvedIds,randomPicks,cooldown,ts:myLastSaveTs}).then(()=>setSync("on")).catch(()=>setSync("err"));
+  },400);
+}
+function saveSubmission(qid,val,isCorrect){
+  if(!dbRef)return;
+  const canvas=document.getElementById("scratchCanvas");
+  let work="";
+  try{work=canvas?canvas.toDataURL("image/png"):"";}catch(e){}
+  dbRef.child("submissions").child(qid).set({value:(val||"").toString(),work,autoCorrect:!!isCorrect,ts:Date.now()});
+}
+function showWrongNoticeModal(n){
+  const ov=document.createElement("div");
+  ov.className="modal-ov";
+  ov.innerHTML='<div class="modal-box"><div class="em">🔁</div><h3>다시 풀어주세요!</h3><p>'+escapeHtml(n.roomName||"")+'의 <b>'+escapeHtml(n.qid||"")+'</b> 문제를 선생님이 다시 확인하셨어요.<br>'+escapeHtml(n.msg||"틀렸어요, 다시 풀어볼까요?")+'</p><button class="btn btn-lg btn-primary" onclick="this.closest(\'.modal-ov\').remove()">확인</button></div>';
+  document.body.appendChild(ov);
+}
+function openFinalMission(){
+  if(totalKeys()<5)return;
+  if(finalDone()){handleScan("R6Q1");}
+  else{openScan();}
+}
+function showCelebration(){
+  const ov=document.createElement("div");
+  ov.className="celebrate-ov";
+  ov.innerHTML='<canvas class="confetti-cv" id="confettiCv"></canvas>'
+    +'<div class="bounce" style="font-size:70px">🏆🔑🎉</div>'
+    +'<h1>미션 클리어!</h1>'
+    +'<p style="font-size:15px;line-height:1.8;max-width:320px;">황금열쇠 5조각을 모두 모으고<br>협동 미션까지 성공했어요!<br>우리 조 최고예요! 🎊</p>'
+    +'<button class="btn btn-lg btn-primary" style="margin-top:22px;max-width:260px" onclick="this.closest(\'.celebrate-ov\').remove()">확인</button>';
+  document.body.appendChild(ov);
+  runConfetti();
+}
+function runConfetti(){
+  const cv=document.getElementById("confettiCv");
+  if(!cv)return;
+  cv.width=window.innerWidth;cv.height=window.innerHeight;
+  const ctx=cv.getContext("2d");
+  const colors=["#FFD700","#FF6B9D","#4DA3E8","#2DAA6E","#B15CFF","#E8833A"];
+  const pieces=Array.from({length:140},()=>({
+    x:Math.random()*cv.width,y:-20-Math.random()*cv.height,
+    w:6+Math.random()*6,h:8+Math.random()*10,
+    vy:2+Math.random()*3,vx:-1.5+Math.random()*3,
+    rot:Math.random()*360,vr:-6+Math.random()*12,
+    color:colors[Math.floor(Math.random()*colors.length)]
+  }));
+  let frame=0;
+  function tick(){
+    frame++;
+    if(!document.getElementById("confettiCv"))return;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    pieces.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;
+      ctx.save();
+      ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+    if(frame<260)requestAnimationFrame(tick);
+    else ctx.clearRect(0,0,cv.width,cv.height);
+  }
+  tick();
+}
+function openRoomDetail(rid){
+  const url=location.pathname+"?room="+rid;
+  let win=null;
+  try{win=window.open(url,"_blank");}catch(e){}
+  if(!win){view="roomDetail";renderRoomDetail(rid);}
+}
+function openScan(){
+  view="scan";
+  const helpRoomId=currentHelpRoomId();
+  const helpBtn=helpRoomId?'<button class="btn btn-lg btn-sub" style="margin-top:14px;color:#b45309" onclick="requestHelp(\''+helpRoomId+"');goHome();\">🙋 선생님께 도움 요청하기</button>":"";
+  app.innerHTML='<div class="scan-wrap"><div class="top-back" onclick="goHome()">← 홈으로</div>'
+    +'<div class="cam-box"><video id="vid" playsinline muted autoplay></video><div class="cam-frame"></div></div>'
+    +'<div class="cam-msg" id="camMsg">카메라를 QR 코드에 비춰주세요</div>'
+    +'<div class="manual-box"><h4>카메라가 안 되면 카드에 적힌 6자리 코드를 직접 입력하세요</h4>'
+    +'<div class="manual-row"><input class="txt-inp" id="manualInp" placeholder="예: A3F9K2" maxlength="6"><button class="btn btn-sub" style="padding:0 16px" onclick="submitManual()">확인</button></div></div>'
+    +helpBtn
+    +"</div>";
+  document.getElementById("manualInp").addEventListener("keydown",e=>{if(e.key==="Enter")submitManual();});
+  startCamera();
+}
+function goHome(){stopCamera();view="home";renderHome();}
+function submitManual(){
+  const v=document.getElementById("manualInp").value.trim().toUpperCase();
+  const qid=CODE2QID[v];
+  if(!qid){alert("코드가 올바르지 않아요. 카드에 적힌 6자리 코드를 다시 확인해주세요.");return;}
+  stopCamera();handleScan(qid);
+}
+async function startCamera(){
+  try{
+    videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    const vid=document.getElementById("vid");
+    if(!vid)return;
+    vid.srcObject=videoStream;
+    const canvas=document.createElement("canvas");
+    const ctx=canvas.getContext("2d",{willReadFrequently:true});
+    function tick(){
+      if(view!=="scan")return;
+      if(vid.readyState===vid.HAVE_ENOUGH_DATA){
+        const vw=vid.videoWidth,vh=vid.videoHeight;
+        // .cam-box는 정사각형(aspect-ratio:1/1)이고 video는 object-fit:cover로 표시됨.
+        // 화면에 실제로 보이는 정사각형 영역(짧은 변 기준)을 원본 좌표로 환산한 뒤,
+        // 그 안에서 안내 사각형(inset 14%) 영역만 잘라서 QR을 인식한다.
+        const sq=Math.min(vw,vh);
+        const sx0=(vw-sq)/2,sy0=(vh-sq)/2;
+        const inset=sq*0.14;
+        const gx=sx0+inset,gy=sy0+inset,gsize=sq*0.72;
+        canvas.width=gsize;canvas.height=gsize;
+        ctx.drawImage(vid,gx,gy,gsize,gsize,0,0,gsize,gsize);
+        const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code=jsQR(img.data,img.width,img.height);
+        if(code&&code.data){
+          const v=code.data.trim().toUpperCase();
+          const qid=CODE2QID[v];
+          if(qid){stopCamera();handleScan(qid);return;}
+        }
+      }
+      scanRAF=requestAnimationFrame(tick);
+    }
+    scanRAF=requestAnimationFrame(tick);
+  }catch(e){
+    const msg=document.getElementById("camMsg");
+    if(msg)msg.textContent="카메라를 사용할 수 없어요. 아래에 코드를 직접 입력하세요.";
+  }
+}
+function stopCamera(){
+  if(scanRAF)cancelAnimationFrame(scanRAF);
+  scanRAF=null;
+  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null;}
+}
+function handleScan(qid){
+  const q=findQ(qid);
+  if(!q){alert("존재하지 않는 문제예요.");view="home";renderHome();return;}
+  const rid=qid.slice(0,2);
+  if(rid==="R6"){
+    if(totalKeys()<5){alert("아직 협동 미션을 열 수 없어요. 5개 방을 먼저 모두 클리어하세요.");view="home";renderHome();return;}
+    if(solvedIds[qid]){showQuestionScreen(qid,"review");return;}
+    showQuestionScreen(qid,"active");
+    return;
+  }
+  if(solvedIds[qid]){showGradeGate(qid,"review");return;}
+  const active=activeRoomId();
+  if(active&&active!==rid){
+    showRoomLockedScreen(rid,ROOMS.find(r=>r.id===active));
+    return;
+  }
+  const roomQids=QUESTIONS[rid].map(x=>x.qid);
+  const solvedCount=roomQids.filter(id=>solvedIds[id]).length;
+  const requiredQid=roomQids[solvedCount];
+  if(qid!==requiredQid&&!unlocked[qid]){showQuestionScreen(qid,"locked",requiredQid);return;}
+  showGradeGate(qid,"active");
+}
+function showRoomLockedScreen(rid,activeRoom){
+  view="question";activeQid=null;
+  const room=ROOMS.find(r=>r.id===rid);
+  let h='<div class="top-back" onclick="goHome()">← 홈으로</div><div class="card">';
+  h+='<div class="center-icon">🔒</div><div class="fb-box fb-lock">'+room.emoji+' '+room.name+'은(는) 아직 시작할 수 없어요!<br>지금은 <b>'+activeRoom.emoji+' '+activeRoom.name+'</b>을(를) 먼저 끝내야 해요.</div>';
+  h+='<button class="btn btn-lg btn-primary" style="margin-top:10px" onclick="requestHelp(\''+activeRoom.id+'\');goHome();">🙋 선생님께 도움 요청하기</button>';
+  h+='</div><button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
+  app.innerHTML=h;
+}
+function ensureRandomPick(q){
+  if(q.type!=="random"||randomPicks[q.qid])return;
+  let pool=q.pool;
+  if(q.exclude&&randomPicks[q.exclude]){
+    const excludeKo=randomPicks[q.exclude].ko;
+    pool=pool.filter(p=>p.ko!==excludeKo);
+  }
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  randomPicks[q.qid]={ko:pick.ko,en:pick.en};
+  saveCloud();
+}
+function showGradeGate(qid,mode){
+  view="question";activeQid=qid;
+  const q=findQ(qid);
+  const rid=qid.slice(0,2);
+  const room=ROOMS.find(r=>r.id===rid);
+  const eff=RosterUtils.computeEffectiveGrade(q.grade,teamGrades,1,6);
+  let warnMsg;
+  if(eff===q.grade){
+    warnMsg='이 문제는 <b>'+q.grade+'학년</b>이 풀어야 하는 문제입니다.';
+  }else{
+    warnMsg='이 문제는 원래 <b>'+q.grade+'학년</b> 문제인데, 우리 조에 '+q.grade+'학년 친구가 없어요!<br>그래서 우리 조에서는 <b>'+eff+'학년</b> 친구가 풀 수 있어요.';
+  }
+  let h='<div class="top-back" onclick="goHome()">← 홈으로</div>';
+  h+='<div class="card">';
+  h+='<div class="q-badges"><span class="badge b-id">'+qid+"</span><span class=\"badge b-grade\">"+q.grade+"학년</span><span class=\"badge b-unit\">"+room.emoji+" "+room.name+" · "+q.unit+"</span></div>";
+  h+='<div class="center-icon">🙋</div>';
+  h+='<div class="grade-warn" style="font-size:15px;text-align:center;line-height:1.6;">'+warnMsg+'</div>';
+  h+='<button class="btn btn-lg btn-primary" style="margin-top:14px" onclick="showQuestionScreen(\''+qid+'\',\''+mode+'\')">확인</button>';
+  h+="</div>";
+  app.innerHTML=h;
+}
+function showQuestionScreen(qid,mode,requiredQid){
+  view="question";activeQid=qid;
+  const q=findQ(qid);
+  const rid=qid.slice(0,2);
+  const room=rid==="R6"?FINAL_ROOM:ROOMS.find(r=>r.id===rid);
+  if(mode!=="locked")ensureRandomPick(q);
+
+  let bodyText=q.text;
+  let expectedShown="";
+  if(q.type==="random"){
+    const pick=randomPicks[qid];
+    bodyText=q.text+'<br><span style="font-size:20px;font-weight:900;color:var(--navy-g)">"'+(pick?pick.ko:"")+'"</span>';
+    expectedShown=pick?pick.en:"";
+  }else{
+    expectedShown=q.answer;
+  }
+
+  let h='<div class="top-back" onclick="goHome()">← 홈으로</div>';
+  h+='<div class="card">';
+  h+='<div class="q-badges"><span class="badge b-id">'+qid+"</span>"+(q.grade?"<span class=\"badge b-grade\">"+q.grade+"학년</span>":"")+"<span class=\"badge b-unit\">"+room.emoji+" "+room.name+" · "+q.unit+"</span></div>";
+
+  if(mode==="locked"){
+    h+='<div class="center-icon">🔒</div><div class="fb-box fb-lock">아직 열 수 없어요!<br>이 방은 순서대로 풀어야 해요.<br>지금 풀어야 할 문제: <b>'+requiredQid+"</b></div>";
+    h+='<button class="btn btn-lg btn-primary" style="margin-top:10px" onclick="requestHelp(\''+rid+"');goHome();\">🙋 선생님께 도움 요청하기</button>";
+    h+="</div>";
+    h+='<button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
+    app.innerHTML=h;
+    return;
+  }
+
+  if(q.img)h+='<div class="qimg'+(q.wide?" wide":"")+'">'+q.img+"</div>";
+  h+='<div class="q-text">'+bodyText+"</div>";
+
+  if(mode==="review"){
+    h+='<div class="fb-box fb-review">✅ 이미 푼 문제예요<br>정답: <b>'+expectedShown+"</b></div>";
+    h+="</div>";
+    h+='<button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
+    app.innerHTML=h;
+    return;
+  }
+
+  // active
+  h+='<div class="ans-row"><input class="txt-inp" id="ansInp" placeholder="정답 입력" autocomplete="off" autocapitalize="off"><button class="btn btn-green" id="submitBtn" style="padding:0 18px" onclick="submitAnswer()">제출</button></div>';
+  h+='<div id="fbArea"></div>';
+  h+='<div class="scr-hd"><span class="lbl">✏️ 풀이 공간</span><button onclick="clearScratch()">🗑 지우기</button></div>';
+  h+='<div class="canvas-wrap" id="canvasWrap"><canvas id="scratchCanvas"></canvas></div>';
+  h+="</div>";
+  app.innerHTML=h;
+  renderCooldown();
+  initCanvas();
+  const inp=document.getElementById("ansInp");
+  if(inp){inp.addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer();});inp.focus();}
+}
+function initCanvas(){
+  const wrap=document.getElementById("canvasWrap");
+  const canvas=document.getElementById("scratchCanvas");
+  if(!wrap||!canvas)return;
+  const rect=wrap.getBoundingClientRect();
+  canvas.width=rect.width||wrap.offsetWidth||300;
+  canvas.height=rect.height||wrap.offsetHeight||220;
+  canvasCtx=canvas.getContext("2d");
+  canvasCtx.lineWidth=2.5;canvasCtx.lineCap="round";canvasCtx.lineJoin="round";canvasCtx.strokeStyle="#1E2D3D";
+  function posFromClient(clientX,clientY){
+    const r=canvas.getBoundingClientRect();
+    return {x:clientX-r.left,y:clientY-r.top};
+  }
+  function startDraw(x,y){drawing=true;lastX=x;lastY=y;}
+  function moveDraw(x,y){
+    if(!drawing||!canvasCtx)return;
+    canvasCtx.beginPath();canvasCtx.moveTo(lastX,lastY);canvasCtx.lineTo(x,y);canvasCtx.stroke();
+    lastX=x;lastY=y;
+  }
+  function stopDraw(){drawing=false;}
+  canvas.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    const p=posFromClient(e.clientX,e.clientY);startDraw(p.x,p.y);
+    try{canvas.setPointerCapture(e.pointerId);}catch(err){}
+  },{passive:false});
+  canvas.addEventListener("pointermove",e=>{
+    if(!drawing)return;
+    e.preventDefault();
+    const p=posFromClient(e.clientX,e.clientY);moveDraw(p.x,p.y);
+  },{passive:false});
+  canvas.addEventListener("pointerup",stopDraw);
+  canvas.addEventListener("pointercancel",stopDraw);
+  canvas.addEventListener("pointerleave",stopDraw);
+  canvas.addEventListener("touchstart",e=>{
+    e.preventDefault();
+    const t=e.touches[0];if(!t)return;
+    const p=posFromClient(t.clientX,t.clientY);startDraw(p.x,p.y);
+  },{passive:false});
+  canvas.addEventListener("touchmove",e=>{
+    e.preventDefault();
+    const t=e.touches[0];if(!t)return;
+    const p=posFromClient(t.clientX,t.clientY);moveDraw(p.x,p.y);
+  },{passive:false});
+  canvas.addEventListener("touchend",e=>{e.preventDefault();stopDraw();},{passive:false});
+  canvas.addEventListener("touchcancel",e=>{e.preventDefault();stopDraw();},{passive:false});
+  canvas.addEventListener("mousedown",e=>{const p=posFromClient(e.clientX,e.clientY);startDraw(p.x,p.y);});
+  canvas.addEventListener("mousemove",e=>{if(drawing){const p=posFromClient(e.clientX,e.clientY);moveDraw(p.x,p.y);}});
+  window.addEventListener("mouseup",stopDraw);
+}
+function clearScratch(){
+  const canvas=document.getElementById("scratchCanvas");
+  if(canvas&&canvasCtx)canvasCtx.clearRect(0,0,canvas.width,canvas.height);
+}
+function renderCooldown(){
+  const qid=activeQid;const c=cooldown[qid];
+  const fb=document.getElementById("fbArea");
+  const btn=document.getElementById("submitBtn");
+  if(!fb)return;
+  const now=Date.now();
+  if(c&&c.until>now){
+    const remain=Math.ceil((c.until-now)/1000);
+    fb.innerHTML='<div class="cooldown-txt">오답! '+remain+'초 후 다시 시도할 수 있어요.</div>';
+    if(btn)btn.disabled=true;
+    setTimeout(()=>{if(view==="question"&&activeQid===qid)renderCooldown();},500);
+  }else{
+    if(btn)btn.disabled=false;
+  }
+}
+function submitAnswer(){
+  const qid=activeQid,q=findQ(qid);
+  const c=cooldown[qid];
+  if(c&&c.until>Date.now())return;
+  const inp=document.getElementById("ansInp");
+  const val=inp?inp.value:"";
+  const expected=q.type==="random"?(randomPicks[qid]?randomPicks[qid].en:""):q.answer;
+  const fb=document.getElementById("fbArea");
+  const isCorrect=normalize(val)===normalize(expected);
+  saveSubmission(qid,val,isCorrect);
+  if(isCorrect){
+    solvedIds[qid]=true;
+    delete cooldown[qid];
+    saveCloud();
+    const rid=qid.slice(0,2);
+    if(rid==="R6"){
+      pendingCelebration=true;
+      fb.innerHTML='<div class="fb-box fb-ok">🎉 협동 미션 성공!</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="goHome()">홈으로</button>';
+    }else{
+      const roomDone=roomProgress(rid)===8;
+      fb.innerHTML='<div class="fb-box fb-ok">🎉 정답입니다!<br>'+(roomDone?"이 방을 모두 클리어했어요! 황금열쇠 조각을 얻었습니다 🔑":"방 안 어딘가에 숨겨진 다음 QR 코드를 찾아보세요!")+'</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="openScan()">📷 다음 QR 스캔하기</button><button class="btn btn-lg btn-sub" style="margin-top:8px" onclick="goHome()">홈으로</button>';
+    }
+    if(inp)inp.disabled=true;
+    const sb=document.getElementById("submitBtn");if(sb)sb.disabled=true;
+  }else{
+    const attempts=((c&&c.attempts)||0)+1;
+    const wait=attempts>=2?60:10;
+    cooldown[qid]={until:Date.now()+wait*1000,attempts};
+    saveCloud();
+    fb.innerHTML='<div class="fb-box fb-bad">❌ 정답이 아니에요. 다시 시도해보세요!</div>';
+    if(inp){inp.value="";}
+    renderCooldown();
+  }
+}
 function renderHome(){
-  app.innerHTML='<div class="card">'+team+'조 홈 화면은 다음 작업(Task 6)에서 채워집니다.</div>';
+  view="home";
+  setHeader();
+  const keys=totalKeys();
+  let h="";
+  if(keys===5&&!finalDone()){
+    h+='<div class="finale"><div class="em">🔑✨</div><h2>황금열쇠 5조각 완성!</h2><p>마지막 협동 미션이 남았어요!<br>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
+  }
+  if(finalDone()){
+    h+='<div class="finale"><div class="em">🎉🏆✨</div><h2>모든 미션 완료!</h2><p>정말 대단해요! 우리 조가 방탈출에 성공했어요.</p></div>';
+  }
+  h+='<div class="keys-bar">';
+  for(let i=0;i<5;i++)h+='<span class="k'+(i<keys?" on":"")+'">🔑</span>';
+  h+='<span class="keys-txt">'+keys+' / 5 조각 모음</span></div>';
+  const active=activeRoomId();
+  h+='<div class="room-grid">';
+  ROOMS.forEach(r=>{
+    const p=roomProgress(r.id),done=p===8;
+    const locked=!done&&active&&active!==r.id;
+    let extra="";
+    if(locked){
+      const activeRoom=ROOMS.find(x=>x.id===active);
+      extra='<div class="lock-msg">🔒 '+activeRoom.name+' 먼저 끝내세요</div>';
+    }else if(!done){
+      const roomQids=QUESTIONS[r.id].map(x=>x.qid);
+      const nextQid=roomQids[p];
+      if(unlocked[nextQid]){
+        extra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="event.stopPropagation();openUnlocked(\''+nextQid+'\')">🔓 선생님이 열어주셨어요!</button>';
+      }else if(helpRequest&&helpRequest.qid===nextQid){
+        extra='<div style="margin-top:6px;font-size:10px;color:#b45309;font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--tx3);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
+      }else{
+        extra='<div style="margin-top:6px;font-size:10px;color:var(--tx3);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();requestHelp(\''+r.id+'\')">🙋 QR을 못 찾겠어요</div>';
+      }
+    }
+    h+='<div class="room-card'+(done?" done":"")+(locked?" locked":"")+'" onclick="openRoomDetail(\''+r.id+'\')"><div class="room-emoji">'+r.emoji+"</div>"
+      +'<div class="room-name">'+r.name+"</div>"
+      +'<div class="room-prog">'+(done?"✅ 완료!":p+" / 8")+"</div>"
+      +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div>'+extra+'</div>';
+  });
+  h+="</div>";
+  if(keys===5){
+    const fd=finalDone();
+    let finalExtra="";
+    if(!fd){
+      if(unlocked["R6Q1"]){
+        finalExtra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="event.stopPropagation();openUnlocked(\'R6Q1\')">🔓 선생님이 열어주셨어요!</button>';
+      }else if(helpRequest&&helpRequest.qid==="R6Q1"){
+        finalExtra='<div style="margin-top:6px;font-size:10px;color:#b45309;font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--tx3);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
+      }
+    }
+    h+='<div class="final-card'+(fd?" done":"")+'" onclick="openFinalMission()"><div class="room-emoji">🤸</div>'
+      +'<div class="room-name">협동 미션 · 강당 단체줄넘기 20개</div>'
+      +'<div class="room-prog">'+(fd?"✅ 완료!":"터치해서 도전하기")+'</div>'+finalExtra+'</div>';
+  }
+  h+='<div style="height:90px"></div>';
+  h+='<div class="scan-fab"><button class="btn btn-lg btn-primary" onclick="openScan()">📷 QR 스캔하기</button></div>';
+  app.innerHTML=h;
+  if(pendingCelebration){pendingCelebration=false;showCelebration();}
 }
 function renderRoomDetail(rid){
-  app.innerHTML='<div class="card">방 상세 화면은 다음 작업(Task 6)에서 채워집니다.</div>';
+  setHeader();
+  view="roomDetail";
+  currentRoomDetailId=rid;
+  const room=ROOMS.find(r=>r.id===rid);
+  if(!room){view="home";renderHome();return;}
+  const roomQids=QUESTIONS[rid].map(x=>x.qid);
+  const p=roomProgress(rid);
+  const active=activeRoomId();
+  const locked=p===0&&active&&active!==rid;
+  const isPopup=!!window.opener;
+  let h='<div class="top-back" onclick="'+(isPopup?"window.close()":"goHome()")+'">'+(isPopup?"✕ 창 닫기":"← 홈으로")+'</div>';
+  h+='<div class="card" style="text-align:center;"><div class="room-emoji" style="font-size:40px">'+room.emoji+'</div><h2 style="margin:6px 0">'+room.name+'</h2><div class="room-prog">'+p+' / 8 해결</div>';
+  if(locked)h+='<div class="grade-warn" style="margin-top:12px">🔒 지금은 <b>'+ROOMS.find(x=>x.id===active).name+'</b>을(를) 먼저 풀어야 이 방 QR이 열려요.</div>';
+  h+='<div class="grid8">';
+  roomQids.forEach((qid,i)=>{
+    const solved=!!solvedIds[qid];
+    const isNext=!solved&&i===p&&!locked;
+    h+='<div class="cell8'+(solved?" solved":"")+(isNext?" next":"")+'">'+(solved?"✅":(i+1))+'</div>';
+  });
+  h+='</div></div>';
+  h+='<button class="btn btn-lg btn-primary" onclick="openScan()" style="margin-top:6px">📷 QR 스캔하러 가기</button>';
+  app.innerHTML=h;
 }
 function connectFirebase(){
   if(!team)return;
   dbRef=db.ref("escape_data/team"+team);
+  dbRef.on("value",snap=>{
+    setSync("on");
+    const d=snap.val();
+    if(d){
+      if(!(d.ts&&Math.abs(d.ts-myLastSaveTs)<2000)){
+        solvedIds=d.solvedIds||{};randomPicks=d.randomPicks||{};cooldown=d.cooldown||{};
+        persistLocal();
+      }
+      unlocked=d.unlocked||{};
+      helpRequest=d.helpRequest||null;
+      if(d.notice&&d.notice.ts&&d.notice.ts!==lastNoticeTs){
+        lastNoticeTs=d.notice.ts;
+        showWrongNoticeModal(d.notice);
+        dbRef.child("notice").remove();
+      }
+    }
+    if(view==="home")renderHome();
+    else if(view==="roomDetail")renderRoomDetail(currentRoomDetailId);
+  },()=>setSync("err"));
 }
 
 /* ===================== 데이터 동기화 (양쪽 화면 공용) ===================== */
@@ -591,6 +1105,7 @@ connectRoster();
 if(sessionStorage.getItem("escape_admin_ok")==="1"){
   enterAdminMode();
 }else if(team){
+  loadLocal();
   connectFirebase();
   view="home";renderHome();
 }else{
