@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { sanitizeKey, makeRosterKey, parseCSV, parseRosterRows, extractSheetId, buildSheetCsvUrl, autoAssignTeams } = require('./roster-utils.js');
+const { sanitizeKey, makeRosterKey, parseCSV, parseRosterRows, extractSheetId, buildSheetCsvUrl, autoAssignTeams, computeEffectiveGrade } = require('./roster-utils.js');
 
 test('sanitizeKey trims whitespace and truncates to 40 chars', () => {
   assert.equal(sanitizeKey('  홍길동  '), '홍길동');
@@ -143,4 +143,25 @@ test('autoAssignTeams groups by grade before assigning, independent of input arr
   // first (emptiest) team — team 1 under the tie-break-to-lowest-index rule.
   assert.equal(teamOf(r1, 'top'), 1);
   assert.equal(teamOf(r2, 'top'), 1);
+});
+
+test('computeEffectiveGrade returns the required grade when present', () => {
+  assert.equal(computeEffectiveGrade(4, new Set([2, 4, 6])), 4);
+});
+
+test('computeEffectiveGrade escalates to the next higher present grade', () => {
+  assert.equal(computeEffectiveGrade(4, new Set([2, 5, 6])), 5);
+});
+
+test('computeEffectiveGrade falls back to a lower grade when nothing higher is present', () => {
+  assert.equal(computeEffectiveGrade(5, new Set([1, 2, 3])), 3);
+});
+
+test('computeEffectiveGrade returns the required grade unchanged when the team has no roster yet', () => {
+  assert.equal(computeEffectiveGrade(4, new Set()), 4);
+});
+
+test('computeEffectiveGrade respects custom grade bounds', () => {
+  assert.equal(computeEffectiveGrade(2, new Set([1]), 1, 3), 1);
+  assert.equal(computeEffectiveGrade(2, new Set([]), 1, 3), 2);
 });

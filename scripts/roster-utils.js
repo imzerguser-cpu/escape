@@ -64,7 +64,17 @@ function autoAssignTeams(students, teamCount, rng) {
   return result;
 }
 
-const RosterUtils = { sanitizeKey, makeRosterKey, parseCSV, parseRosterRows, extractSheetId, buildSheetCsvUrl, autoAssignTeams };
+function computeEffectiveGrade(requiredGrade, presentGrades, minGrade, maxGrade) {
+  const lo = minGrade == null ? 1 : minGrade;
+  const hi = maxGrade == null ? 6 : maxGrade;
+  if (!presentGrades || presentGrades.size === 0) return requiredGrade;
+  if (presentGrades.has(requiredGrade)) return requiredGrade;
+  for (let g = requiredGrade + 1; g <= hi; g++) if (presentGrades.has(g)) return g;
+  for (let g = requiredGrade - 1; g >= lo; g--) if (presentGrades.has(g)) return g;
+  return requiredGrade;
+}
+
+const RosterUtils = { sanitizeKey, makeRosterKey, parseCSV, parseRosterRows, extractSheetId, buildSheetCsvUrl, autoAssignTeams, computeEffectiveGrade };
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = RosterUtils;
