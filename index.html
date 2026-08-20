@@ -475,6 +475,7 @@ function enterAdminMode(){
   showTab(currentTab);
 }
 function exitAdminMode(){
+  sessionStorage.removeItem("escape_admin_ok");
   appMode="student";
   document.getElementById("adminRoot").style.display="none";
   document.getElementById("studentRoot").style.display="";
@@ -551,6 +552,9 @@ function resetAll(){
   if(!confirm("정말 모든 조의 진행상황을 초기화할까요?\n(리허설 후 실제 행사 전에만 사용하세요)"))return;
   const updates={};
   for(let n=1;n<=teamCount;n++)updates["team"+n]={solvedIds:{},randomPicks:{},cooldown:{},ts:Date.now()};
+  Object.keys(lastAllData).forEach(k=>{
+    if(/^team\d+$/.test(k)&&!updates[k])updates[k]={solvedIds:{},randomPicks:{},cooldown:{},ts:Date.now()};
+  });
   dbRoot.update(updates).then(()=>alert("초기화되었습니다."));
 }
 function resetTeam(n){
@@ -671,15 +675,22 @@ function renderRosterTab(){
     return (A.name||"").localeCompare(B.name||"","ko");
   }).forEach(key=>{
     const s=rosterAll[key];
+    const dataKey=' data-key="'+escapeHtml(key)+'"';
     h+="<tr><td><b>"+escapeHtml(s.name||key)+"</b></td><td>"+s.grade+"학년</td>";
-    h+='<td><select class="team-sel" onchange="assignTeam(\''+key+'\',this.value)">';
+    h+='<td><select class="team-sel"'+dataKey+'>';
     h+='<option value=""'+(!s.teamId?" selected":"")+'>미배정</option>';
     for(let n=1;n<=teamCount;n++)h+='<option value="'+n+'"'+(String(s.teamId)===String(n)?" selected":"")+'>'+n+'조</option>';
     h+='</select></td>';
-    h+='<td><button class="btn btn-danger" style="padding:5px 10px;font-size:11px" onclick="deleteRoster(\''+key+'\')">🗑</button></td></tr>';
+    h+='<td><button class="btn btn-danger" style="padding:5px 10px;font-size:11px"'+dataKey+'>🗑</button></td></tr>';
   });
   h+="</table></div>";
   document.getElementById("viewRoster").innerHTML=h;
+  document.querySelectorAll("#viewRoster select.team-sel[data-key]").forEach(el=>{
+    el.addEventListener("change",()=>assignTeam(el.dataset.key,el.value));
+  });
+  document.querySelectorAll("#viewRoster .btn-danger[data-key]").forEach(el=>{
+    el.addEventListener("click",()=>deleteRoster(el.dataset.key));
+  });
 }
 function showRosterUploadErr(msg){
   const el=document.getElementById("rosterUploadErr");
@@ -740,7 +751,8 @@ function loadFromExcelFile(file){
 }
 function confirmAutoAssign(){
   if(!parsedRosterPreview||parsedRosterPreview.length===0)return;
-  const n=Number(document.getElementById("teamCountInp").value)||1;
+  const raw=Math.floor(Number(document.getElementById("teamCountInp").value))||1;
+  const n=Math.min(30,Math.max(1,raw));
   if(!confirm(parsedRosterPreview.length+"명을 "+n+"개 조로 편성할까요? 기존 명단/조 배정을 덮어씁니다. (방탈출 진행 기록은 그대로 유지됩니다)"))return;
   const assigned=RosterUtils.autoAssignTeams(parsedRosterPreview,n);
   const existingKeys=new Set();
@@ -753,6 +765,8 @@ function confirmAutoAssign(){
   db.ref("escape_data").update({roster:rosterUpdate,"meta/teamCount":n}).then(()=>{
     parsedRosterPreview=null;
     alert("조 편성이 완료되었습니다.");
+  }).catch(err=>{
+    showRosterUploadErr("저장하지 못했어요. 네트워크 연결을 확인하고 다시 시도해주세요. ("+err.message+")");
   });
 }
 function assignTeam(key,val){
@@ -811,6 +825,14 @@ function pickTeam(n){
   computeTeamGrades();
   connectFirebase();
   view="home";renderHome();
+}
+function switchTeam(){
+  if(!confirm("다른 조를 선택할까요? (현재 조의 화면에서 나가요)"))return;
+  if(dbRef){dbRef.off();dbRef=null;}
+  team="";
+  localStorage.removeItem("escape_team");
+  solvedIds={};randomPicks={};cooldown={};unlocked={};helpRequest=null;
+  view="teamPick";renderTeamPick();
 }
 function findQ(qid){
   const rid=qid.slice(0,2);
@@ -893,7 +915,7 @@ function showWrongNoticeModal(n){
   const ov=document.createElement("div");
   ov.className="modal-ov";
   ov.innerHTML='<div class="modal-box"><div class="em">🔁</div><h3>다시 풀어주세요!</h3><p>'+escapeHtml(n.roomName||"")+'의 <b>'+escapeHtml(n.qid||"")+'</b> 문제를 선생님이 다시 확인하셨어요.<br>'+escapeHtml(n.msg||"틀렸어요, 다시 풀어볼까요?")+'</p><button class="btn btn-lg btn-primary" onclick="this.closest(\'.modal-ov\').remove()">확인</button></div>';
-  document.body.appendChild(ov);
+  document.getElementById("studentRoot").appendChild(ov);
 }
 function openFinalMission(){
   if(totalKeys()<5)return;
@@ -908,7 +930,7 @@ function showCelebration(){
     +'<h1>미션 클리어!</h1>'
     +'<p style="font-size:15px;line-height:1.8;max-width:320px;">황금열쇠 5조각을 모두 모으고<br>협동 미션까지 성공했어요!<br>우리 조 최고예요! 🎊</p>'
     +'<button class="btn btn-lg btn-primary" style="margin-top:22px;max-width:260px" onclick="this.closest(\'.celebrate-ov\').remove()">확인</button>';
-  document.body.appendChild(ov);
+  document.getElementById("studentRoot").appendChild(ov);
   runConfetti();
 }
 function runConfetti(){
@@ -1283,6 +1305,7 @@ function renderHome(){
       +'<div class="room-name">협동 미션 · 강당 단체줄넘기 20개</div>'
       +'<div class="room-prog">'+(fd?"✅ 완료!":"터치해서 도전하기")+'</div>'+finalExtra+'</div>';
   }
+  h+='<div class="team-switch" onclick="switchTeam()">다른 조 선택</div>';
   h+='<div style="height:90px"></div>';
   h+='<div class="scan-fab"><button class="btn btn-lg btn-primary" onclick="openScan()">📷 QR 스캔하기</button></div>';
   app.innerHTML=h;
@@ -1341,13 +1364,21 @@ function connectRoster(){
   db.ref("escape_data/roster").on("value",snap=>{
     rosterAll=snap.val()||{};
     computeTeamGrades();
-    if(view==="teamPick")renderTeamPick();
+    if(view==="teamPick"&&appMode==="student")renderTeamPick();
     else if(view==="home"&&appMode==="student")setHeader();
     if(appMode==="admin")renderRosterTab();
   });
   db.ref("escape_data/meta/teamCount").on("value",snap=>{
     teamCount=snap.val()||0;
-    if(view==="teamPick")renderTeamPick();
+    if(appMode==="student"&&team&&Number(team)>teamCount){
+      if(dbRef){dbRef.off();dbRef=null;}
+      team="";
+      localStorage.removeItem("escape_team");
+      solvedIds={};randomPicks={};cooldown={};unlocked={};helpRequest=null;
+      view="teamPick";renderTeamPick();
+      return;
+    }
+    if(view==="teamPick"&&appMode==="student")renderTeamPick();
     if(appMode==="admin")renderRosterTab();
   });
 }
