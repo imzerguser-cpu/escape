@@ -826,12 +826,17 @@ function pickTeam(n){
   connectFirebase();
   view="home";renderHome();
 }
-function switchTeam(){
-  if(!confirm("다른 조를 선택할까요? (현재 조의 화면에서 나가요)"))return;
+function leaveTeam(){
+  stopCamera();
   if(dbRef){dbRef.off();dbRef=null;}
   team="";
   localStorage.removeItem("escape_team");
   solvedIds={};randomPicks={};cooldown={};unlocked={};helpRequest=null;
+  myLastSaveTs=0;
+}
+function switchTeam(){
+  if(!confirm("다른 조를 선택할까요? (현재 조의 화면에서 나가요)"))return;
+  leaveTeam();
   view="teamPick";renderTeamPick();
 }
 function findQ(qid){
@@ -1371,10 +1376,7 @@ function connectRoster(){
   db.ref("escape_data/meta/teamCount").on("value",snap=>{
     teamCount=snap.val()||0;
     if(appMode==="student"&&team&&Number(team)>teamCount){
-      if(dbRef){dbRef.off();dbRef=null;}
-      team="";
-      localStorage.removeItem("escape_team");
-      solvedIds={};randomPicks={};cooldown={};unlocked={};helpRequest=null;
+      leaveTeam();
       view="teamPick";renderTeamPick();
       return;
     }
