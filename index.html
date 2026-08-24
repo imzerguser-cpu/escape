@@ -730,19 +730,31 @@ function renderRosterTab(){
   for(let n=1;n<=teamCount;n++)h+="<span style='margin-right:14px'>"+n+"조 "+(teamCounts[n]||0)+"명</span>";
   h+='</div>';
   h+='<div class="card"><table><tr><th>이름</th><th>학년</th><th>조 배정</th><th>삭제</th></tr>';
-  keys.sort((a,b)=>{
-    const A=rosterAll[a],B=rosterAll[b];
-    if(A.grade!==B.grade)return A.grade-B.grade;
-    return (A.name||"").localeCompare(B.name||"","ko");
-  }).forEach(key=>{
-    const s=rosterAll[key];
-    const dataKey=' data-key="'+escapeHtml(key)+'"';
-    h+="<tr><td><b>"+escapeHtml(s.name||key)+"</b></td><td>"+s.grade+"학년</td>";
-    h+='<td><select class="team-sel"'+dataKey+'>';
-    h+='<option value=""'+(!s.teamId?" selected":"")+'>미배정</option>';
-    for(let n=1;n<=teamCount;n++)h+='<option value="'+n+'"'+(String(s.teamId)===String(n)?" selected":"")+'>'+n+'조</option>';
-    h+='</select></td>';
-    h+='<td><button class="btn btn-danger" style="padding:5px 10px;font-size:11px"'+dataKey+'>🗑</button></td></tr>';
+  const groups={};
+  keys.forEach(k=>{
+    const gid=rosterAll[k].teamId?String(rosterAll[k].teamId):"";
+    (groups[gid]=groups[gid]||[]).push(k);
+  });
+  const groupOrder=[];
+  for(let n=1;n<=teamCount;n++)if(groups[String(n)])groupOrder.push(String(n));
+  if(groups[""])groupOrder.push("");
+  groupOrder.forEach(gid=>{
+    const label=gid?gid+"조 ("+groups[gid].length+"명)":"미배정 ("+groups[gid].length+"명)";
+    h+='<tr><td colspan="4" style="background:#F0F3F7;font-weight:800;text-align:left;padding:8px 10px;">'+label+'</td></tr>';
+    groups[gid].sort((a,b)=>{
+      const A=rosterAll[a],B=rosterAll[b];
+      if(A.grade!==B.grade)return B.grade-A.grade;
+      return (A.name||"").localeCompare(B.name||"","ko");
+    }).forEach(key=>{
+      const s=rosterAll[key];
+      const dataKey=' data-key="'+escapeHtml(key)+'"';
+      h+="<tr><td><b>"+escapeHtml(s.name||key)+"</b></td><td>"+s.grade+"학년</td>";
+      h+='<td><select class="team-sel"'+dataKey+'>';
+      h+='<option value=""'+(!s.teamId?" selected":"")+'>미배정</option>';
+      for(let n=1;n<=teamCount;n++)h+='<option value="'+n+'"'+(String(s.teamId)===String(n)?" selected":"")+'>'+n+'조</option>';
+      h+='</select></td>';
+      h+='<td><button class="btn btn-danger" style="padding:5px 10px;font-size:11px"'+dataKey+'>🗑</button></td></tr>';
+    });
   });
   h+="</table></div>";
   document.getElementById("viewRoster").innerHTML=h;
