@@ -1231,7 +1231,7 @@ function showQuestionScreen(qid,mode,requiredQid){
 
   // active
   if(MATH_ROOMS.includes(rid)){
-    h+='<div style="background:#FDEEEF;border:1px solid #F5C6CB;border-radius:10px;padding:10px 12px;font-size:13px;color:var(--red);font-weight:800;text-align:center;line-height:1.6;">⚠️ 풀이과정을 꼭 남겨주세요! 안 적으면 오답 처리되어 다시 풀어야 해요.</div>';
+    h+='<div style="background:#FDEEEF;border:1px solid #F5C6CB;border-radius:10px;padding:10px 12px;font-size:13px;color:var(--red);font-weight:800;text-align:center;line-height:1.6;">⚠️ 풀이과정을 꼭 남겨주세요!<br>안 적으면 오답 처리되어 다시 풀어야 해요.</div>';
   }
   h+='<div class="ans-row"><input class="txt-inp" id="ansInp" placeholder="정답 입력" autocomplete="off" autocapitalize="off"><button class="btn btn-green" id="submitBtn" style="padding:0 18px" onclick="submitAnswer()">제출</button></div>';
   h+='<div id="fbArea"></div>';
