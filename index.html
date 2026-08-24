@@ -430,6 +430,7 @@ const dbRoot=db.ref("escape_data");
 let appMode="student";
 let team=localStorage.getItem("escape_team")||"";
 let teamCount=0;
+let requiredRooms=5;
 let rosterAll={};
 let teamGrades=new Set();
 let solvedIds={},randomPicks={},cooldown={};
@@ -496,9 +497,29 @@ function showTab(t){
   if(t==="qr")renderQrPage();
   if(t==="questions")renderQuestionsTab();
 }
+function activeRoomIdFor(solved){
+  for(const r of ROOMS){
+    const cnt=QMETA[r.id].filter(q=>solved[q[0]]).length;
+    if(cnt>0&&cnt<8)return r.id;
+  }
+  return null;
+}
+function saveRequiredRooms(){
+  const v=Number(document.getElementById("reqRoomsSel").value);
+  db.ref("escape_data/meta/requiredRooms").set(v).then(()=>alert("설정이 저장되었습니다. 학생 화면에 바로 반영됩니다."));
+}
 function renderDash(all){
   lastAllData=all||{};
   const data=lastAllData;
+
+  let reqHtml='<div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+    +'<b>협동미션 도전에 필요한 방 개수</b>'
+    +'<select id="reqRoomsSel" style="padding:5px 8px;border-radius:6px;border:1px solid var(--bdr);">';
+  for(let i=2;i<=5;i++)reqHtml+='<option value="'+i+'"'+(requiredRooms===i?" selected":"")+'>'+i+'개</option>';
+  reqHtml+='</select>'
+    +'<button class="btn btn-primary" style="padding:6px 14px;font-size:12px" onclick="saveRequiredRooms()">저장</button>'
+    +'<span style="font-size:11px;color:var(--tx2)">방 '+requiredRooms+'개를 클리어하면 모든 조가 협동미션(강당 단체줄넘기)에 도전할 수 있어요. 어떤 방을 고를지는 자유예요.</span>'
+    +'</div>';
 
   const helpTeams=[];
   for(let n=1;n<=teamCount;n++){
@@ -517,11 +538,34 @@ function renderDash(all){
   }
 
   if(teamCount<1){
-    document.getElementById("viewDash").innerHTML=helpHtml+'<div class="card"><div class="empty-msg">아직 편성된 조가 없어요. "학생 배정" 탭에서 명단을 업로드해주세요.</div></div>';
+    document.getElementById("viewDash").innerHTML=reqHtml+helpHtml+'<div class="card"><div class="empty-msg">아직 편성된 조가 없어요. "학생 배정" 탭에서 명단을 업로드해주세요.</div></div>';
     return;
   }
 
-  let h=helpHtml+'<div class="actions"><button class="btn btn-danger" onclick="resetAll()">🗑 전체 초기화 (모든 조)</button></div>';
+  let posHtml='<div class="card"><h3 style="margin-bottom:8px;">📍 조별 현재 위치</h3><table><tr><th>조</th><th>현재 위치</th><th>완료한 방</th></tr>';
+  for(let n=1;n<=teamCount;n++){
+    const d=data["team"+n]||{};
+    const solved=d.solvedIds||{};
+    const doneCount=ROOMS.filter(r=>QMETA[r.id].filter(q=>solved[q[0]]).length===8).length;
+    const activeRid=activeRoomIdFor(solved);
+    const finalOk=!!solved["R6Q1"];
+    let statusText;
+    if(finalOk){
+      statusText='<span style="color:var(--green);font-weight:800;">🎉 방탈출 완료</span>';
+    }else if(activeRid){
+      const ar=ROOMS.find(x=>x.id===activeRid);
+      const cnt=QMETA[activeRid].filter(q=>solved[q[0]]).length;
+      statusText=ar.emoji+' '+ar.name+' 진행 중 ('+cnt+'/8)';
+    }else if(d.finalUnlocked||doneCount>=requiredRooms){
+      statusText='<span style="color:var(--gold);font-weight:800;">🤸 협동미션으로 이동 가능</span>';
+    }else{
+      statusText='<span style="color:var(--tx2);">⏳ 방 선택 대기 중</span>';
+    }
+    posHtml+='<tr><td><b>'+n+'조</b></td><td>'+statusText+'</td><td>'+doneCount+' / 5</td></tr>';
+  }
+  posHtml+='</table></div>';
+
+  let h=reqHtml+helpHtml+posHtml+'<div class="actions"><button class="btn btn-danger" onclick="resetAll()">🗑 전체 초기화 (모든 조)</button></div>';
   h+='<div class="card"><table><tr><th>조</th>';
   ROOMS.forEach(r=>h+="<th>"+r.emoji+" "+r.name+"</th>");
   h+='<th>'+FINAL_ROOM.emoji+' 협동미션</th>';
@@ -867,7 +911,7 @@ function normalize(s){return (s||"").toString().trim().replace(/\s+/g,"").toLowe
 function roomProgress(rid){return QUESTIONS[rid].filter(q=>solvedIds[q.qid]).length;}
 function totalKeys(){return ROOMS.filter(r=>roomProgress(r.id)===8).length;}
 function finalDone(){return !!solvedIds["R6Q1"];}
-function finalMissionAvailable(){return totalKeys()===5||finalUnlocked;}
+function finalMissionAvailable(){return totalKeys()>=requiredRooms||finalUnlocked;}
 function activeRoomId(){
   for(const r of ROOMS){const p=roomProgress(r.id);if(p>0&&p<8)return r.id;}
   return null;
@@ -1280,17 +1324,15 @@ function renderHome(){
   const keys=totalKeys();
   const finalAvail=finalMissionAvailable();
   let h="";
-  if(keys===5&&!finalDone()){
-    h+='<div class="finale"><div class="em">🔑✨</div><h2>황금열쇠 5조각 완성!</h2><p>마지막 협동 미션이 남았어요!<br>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
-  }else if(finalUnlocked&&!finalDone()){
-    h+='<div class="finale"><div class="em">🤸✨</div><h2>협동 미션이 열렸어요!</h2><p>선생님이 협동 미션을 먼저 열어주셨어요.<br>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
+  if(finalAvail&&!finalDone()){
+    h+='<div class="finale"><div class="em">🤸✨</div><h2>협동 미션에 도전할 수 있어요!</h2><p>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
   }
   if(finalDone()){
     h+='<div class="finale"><div class="em">🎉🏆✨</div><h2>모든 미션 완료!</h2><p>정말 대단해요! 우리 조가 방탈출에 성공했어요.</p></div>';
   }
   h+='<div class="keys-bar">';
   for(let i=0;i<5;i++)h+='<span class="k'+(i<keys?" on":"")+'">🔑</span>';
-  h+='<span class="keys-txt">'+keys+' / 5 조각 모음</span></div>';
+  h+='<span class="keys-txt">'+keys+' / 5 조각 모음 · 협동미션은 '+requiredRooms+'개 완료 시 도전 가능</span></div>';
   const active=activeRoomId();
   h+='<div class="room-grid">';
   ROOMS.forEach(r=>{
@@ -1404,6 +1446,11 @@ function connectRoster(){
     }
     if(view==="teamPick"&&appMode==="student")renderTeamPick();
     if(appMode==="admin")renderRosterTab();
+  });
+  db.ref("escape_data/meta/requiredRooms").on("value",snap=>{
+    requiredRooms=snap.val()||5;
+    if(view==="home"&&appMode==="student")renderHome();
+    if(appMode==="admin"&&currentTab==="dash")renderDash(lastAllData);
   });
 }
 function connectQuestionOverrides(){
