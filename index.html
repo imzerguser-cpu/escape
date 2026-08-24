@@ -236,6 +236,7 @@ const ROOMS=[
  {id:"R5",emoji:"🏛️",name:"강당"},
 ];
 const FINAL_ROOM={id:"R6",emoji:"🤸",name:"협동 미션(강당)"};
+const MATH_ROOMS=["R1","R2","R5"];
 /* 이 학생들의 학년 문제가 나오면, 같은 조의 같은 학년 또는 한 학년 위 친구가 도와줄 수 있다는 안내를 띄운다 */
 const HELP_STUDENTS=[{name:"성부겸",grade:4},{name:"백은성",grade:3},{name:"김수연",grade:5},{name:"이태훈",grade:6}];
 
@@ -440,7 +441,7 @@ let unlocked={},helpRequest=null,finalUnlocked=false;
 let dbRef=null,myLastSaveTs=0,saveTimer=null,lastNoticeTs=0;
 let view="teamPick",activeQid=null,pendingCelebration=false,currentRoomDetailId=null;
 let videoStream=null,scanRAF=null;
-let canvasCtx=null,drawing=false,lastX=0,lastY=0;
+let canvasCtx=null,drawing=false,lastX=0,lastY=0,scratchHasDrawing=false;
 let QOVERRIDE={};
 let dashListenerAttached=false;
 let currentTab="dash";
@@ -1229,6 +1230,9 @@ function showQuestionScreen(qid,mode,requiredQid){
   }
 
   // active
+  if(MATH_ROOMS.includes(rid)){
+    h+='<div style="background:#FDEEEF;border:1px solid #F5C6CB;border-radius:10px;padding:10px 12px;font-size:13px;color:var(--red);font-weight:800;text-align:center;line-height:1.6;">⚠️ 풀이과정을 꼭 남겨주세요! 안 적으면 오답 처리되어 다시 풀어야 해요.</div>';
+  }
   h+='<div class="ans-row"><input class="txt-inp" id="ansInp" placeholder="정답 입력" autocomplete="off" autocapitalize="off"><button class="btn btn-green" id="submitBtn" style="padding:0 18px" onclick="submitAnswer()">제출</button></div>';
   h+='<div id="fbArea"></div>';
   h+='<div class="scr-hd"><span class="lbl">✏️ 풀이 공간</span><button onclick="clearScratch()">🗑 지우기</button></div>';
@@ -1249,11 +1253,12 @@ function initCanvas(){
   canvas.height=rect.height||wrap.offsetHeight||220;
   canvasCtx=canvas.getContext("2d");
   canvasCtx.lineWidth=2.5;canvasCtx.lineCap="round";canvasCtx.lineJoin="round";canvasCtx.strokeStyle="#1E2D3D";
+  scratchHasDrawing=false;
   function posFromClient(clientX,clientY){
     const r=canvas.getBoundingClientRect();
     return {x:clientX-r.left,y:clientY-r.top};
   }
-  function startDraw(x,y){drawing=true;lastX=x;lastY=y;}
+  function startDraw(x,y){drawing=true;scratchHasDrawing=true;lastX=x;lastY=y;}
   function moveDraw(x,y){
     if(!drawing||!canvasCtx)return;
     canvasCtx.beginPath();canvasCtx.moveTo(lastX,lastY);canvasCtx.lineTo(x,y);canvasCtx.stroke();
@@ -1292,6 +1297,7 @@ function initCanvas(){
 function clearScratch(){
   const canvas=document.getElementById("scratchCanvas");
   if(canvas&&canvasCtx)canvasCtx.clearRect(0,0,canvas.width,canvas.height);
+  scratchHasDrawing=false;
 }
 function renderCooldown(){
   const qid=activeQid;const c=cooldown[qid];
@@ -1316,7 +1322,10 @@ function submitAnswer(){
   const val=inp?inp.value:"";
   const expected=q.type==="random"?(randomPicks[qid]?randomPicks[qid].en:""):q.answer;
   const fb=document.getElementById("fbArea");
-  const isCorrect=normalize(val)===normalize(expected);
+  const rid0=qid.slice(0,2);
+  const answerMatches=normalize(val)===normalize(expected);
+  const noWorkShown=MATH_ROOMS.includes(rid0)&&!scratchHasDrawing;
+  const isCorrect=answerMatches&&!noWorkShown;
   saveSubmission(qid,val,isCorrect);
   if(isCorrect){
     solvedIds[qid]=true;
@@ -1337,7 +1346,11 @@ function submitAnswer(){
     const wait=attempts>=2?60:10;
     cooldown[qid]={until:Date.now()+wait*1000,attempts};
     saveCloud();
-    fb.innerHTML='<div class="fb-box fb-bad">❌ 정답이 아니에요. 다시 시도해보세요!</div>';
+    if(answerMatches&&noWorkShown){
+      fb.innerHTML='<div class="fb-box fb-bad">❌ 정답이지만 풀이과정이 없어서 오답 처리했어요!<br>풀이과정을 꼭 남기고 다시 풀어주세요.</div>';
+    }else{
+      fb.innerHTML='<div class="fb-box fb-bad">❌ 정답이 아니에요. 다시 시도해보세요!</div>';
+    }
     if(inp){inp.value="";}
     renderCooldown();
   }
