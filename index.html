@@ -1449,7 +1449,10 @@ function connectRoster(){
   });
   db.ref("escape_data/meta/requiredRooms").on("value",snap=>{
     requiredRooms=snap.val()||5;
-    if(view==="home"&&appMode==="student")renderHome();
+    if(appMode==="student"){
+      if(view==="home")renderHome();
+      else if(view==="roomDetail")renderRoomDetail(currentRoomDetailId);
+    }
     if(appMode==="admin"&&currentTab==="dash")renderDash(lastAllData);
   });
 }
