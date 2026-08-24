@@ -433,7 +433,7 @@ let teamCount=0;
 let rosterAll={};
 let teamGrades=new Set();
 let solvedIds={},randomPicks={},cooldown={};
-let unlocked={},helpRequest=null;
+let unlocked={},helpRequest=null,finalUnlocked=false;
 let dbRef=null,myLastSaveTs=0,saveTimer=null,lastNoticeTs=0;
 let view="teamPick",activeQid=null,pendingCelebration=false,currentRoomDetailId=null;
 let videoStream=null,scanRAF=null;
@@ -541,7 +541,16 @@ function renderDash(all){
         +'<br><button class="reset-mini" onclick="resetRoom('+n+",'"+r.id+"')\" title=\""+n+"조 "+r.name+' 초기화">↺</button></td>';
     });
     const finalOk=!!solved["R6Q1"];
-    h+='<td class="prog-cell" style="cursor:pointer;'+(finalOk?"color:var(--green)":"")+'" onclick="viewTeamRoom('+n+",'R6')\">"+(finalOk?"✅ 완료":"—")+"</td>";
+    const finalUnlockedFlag=!!d.finalUnlocked;
+    let finalCell;
+    if(finalOk){
+      finalCell='<span style="cursor:pointer;text-decoration:underline;color:var(--green);font-weight:800;" onclick="viewTeamRoom('+n+',\'R6\')">✅ 완료</span>';
+    }else if(finalUnlockedFlag){
+      finalCell='<span style="color:var(--gold);font-weight:800;">🔓 열림</span><br><button class="reset-mini" onclick="setFinalUnlocked('+n+',false)">잠그기</button>';
+    }else{
+      finalCell='<button class="btn btn-sub" style="padding:4px 8px;font-size:11px" onclick="setFinalUnlocked('+n+',true)">🤸 지금 열기</button>';
+    }
+    h+='<td class="prog-cell">'+finalCell+'</td>';
     h+="<td><b>"+totalSolved+" / 40</b></td><td class=\"keycount\">"+keys+" / 5</td>";
     h+='<td><button class="btn btn-sub" style="padding:5px 10px;font-size:11px" onclick="resetTeam('+n+')">↺ '+n+"조 초기화</button></td></tr>";
   }
@@ -564,13 +573,18 @@ function resetTeam(n){
 function resetRoom(n,roomId){
   const room=ALL_ROOMS.find(r=>r.id===roomId);
   const roomName=room?room.name:roomId;
-  if(!confirm(n+"조의 '"+roomName+"' 진행상황만 초기화할까요? (다른 방 진행상황은 그대로 유지됩니다)"))return;
-  const d=lastAllData["team"+n]||{};
-  const solved=Object.assign({},d.solvedIds||{});
-  const picks=Object.assign({},d.randomPicks||{});
-  const cd=Object.assign({},d.cooldown||{});
-  QMETA[roomId].forEach(q=>{delete solved[q[0]];delete picks[q[0]];delete cd[q[0]];});
-  dbRoot.child("team"+n).set({solvedIds:solved,randomPicks:picks,cooldown:cd,ts:Date.now()}).then(()=>alert(n+"조의 '"+roomName+"'이(가) 초기화되었습니다."));
+  if(!confirm(n+"조의 '"+roomName+"' 진행상황만 초기화할까요? (다른 방 진행상황·협동미션 열림 상태는 그대로 유지됩니다)"))return;
+  // update()로 해당 방의 qid만 지워야 함: 기존처럼 set()으로 통째로 덮어쓰면
+  // unlocked/helpRequest/submissions/finalUnlocked 같은 다른 방 초기화와 무관한 데이터까지 사라짐
+  const updates={};
+  QMETA[roomId].forEach(q=>{
+    updates["team"+n+"/solvedIds/"+q[0]]=null;
+    updates["team"+n+"/randomPicks/"+q[0]]=null;
+    updates["team"+n+"/cooldown/"+q[0]]=null;
+    updates["team"+n+"/submissions/"+q[0]]=null;
+  });
+  updates["team"+n+"/ts"]=Date.now();
+  dbRoot.update(updates).then(()=>alert(n+"조의 '"+roomName+"'이(가) 초기화되었습니다."));
 }
 function approveHelp(n,qid){
   dbRoot.child("team"+n).child("unlocked").child(qid).set(true);
@@ -578,6 +592,9 @@ function approveHelp(n,qid){
 }
 function dismissHelp(n){
   dbRoot.child("team"+n).child("helpRequest").remove();
+}
+function setFinalUnlocked(n,val){
+  dbRoot.child("team"+n).child("finalUnlocked").set(val);
 }
 function viewTeamRoom(n,roomId){
   const room=ALL_ROOMS.find(r=>r.id===roomId);
@@ -831,7 +848,7 @@ function leaveTeam(){
   if(dbRef){dbRef.off();dbRef=null;}
   team="";
   localStorage.removeItem("escape_team");
-  solvedIds={};randomPicks={};cooldown={};unlocked={};helpRequest=null;
+  solvedIds={};randomPicks={};cooldown={};unlocked={};helpRequest=null;finalUnlocked=false;
   myLastSaveTs=0;
 }
 function switchTeam(){
@@ -850,6 +867,7 @@ function normalize(s){return (s||"").toString().trim().replace(/\s+/g,"").toLowe
 function roomProgress(rid){return QUESTIONS[rid].filter(q=>solvedIds[q.qid]).length;}
 function totalKeys(){return ROOMS.filter(r=>roomProgress(r.id)===8).length;}
 function finalDone(){return !!solvedIds["R6Q1"];}
+function finalMissionAvailable(){return totalKeys()===5||finalUnlocked;}
 function activeRoomId(){
   for(const r of ROOMS){const p=roomProgress(r.id);if(p>0&&p<8)return r.id;}
   return null;
@@ -859,7 +877,7 @@ function currentHelpRoomId(){
   if(active)return active;
   const notDone=ROOMS.find(r=>roomProgress(r.id)<8);
   if(notDone)return notDone.id;
-  if(totalKeys()===5&&!finalDone())return "R6";
+  if(finalMissionAvailable()&&!finalDone())return "R6";
   return null;
 }
 function loadLocal(){
@@ -923,7 +941,7 @@ function showWrongNoticeModal(n){
   document.getElementById("studentRoot").appendChild(ov);
 }
 function openFinalMission(){
-  if(totalKeys()<5)return;
+  if(!finalMissionAvailable())return;
   if(finalDone()){handleScan("R6Q1");}
   else{openScan();}
 }
@@ -1043,7 +1061,7 @@ function handleScan(qid){
   if(!q){alert("존재하지 않는 문제예요.");view="home";renderHome();return;}
   const rid=qid.slice(0,2);
   if(rid==="R6"){
-    if(totalKeys()<5){alert("아직 협동 미션을 열 수 없어요. 5개 방을 먼저 모두 클리어하세요.");view="home";renderHome();return;}
+    if(!finalMissionAvailable()){alert("아직 협동 미션을 열 수 없어요. 5개 방을 먼저 모두 클리어하거나, 선생님이 열어주실 때까지 기다려주세요.");view="home";renderHome();return;}
     if(solvedIds[qid]){showQuestionScreen(qid,"review");return;}
     showQuestionScreen(qid,"active");
     return;
@@ -1260,9 +1278,12 @@ function renderHome(){
   view="home";
   setHeader();
   const keys=totalKeys();
+  const finalAvail=finalMissionAvailable();
   let h="";
   if(keys===5&&!finalDone()){
     h+='<div class="finale"><div class="em">🔑✨</div><h2>황금열쇠 5조각 완성!</h2><p>마지막 협동 미션이 남았어요!<br>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
+  }else if(finalUnlocked&&!finalDone()){
+    h+='<div class="finale"><div class="em">🤸✨</div><h2>협동 미션이 열렸어요!</h2><p>선생님이 협동 미션을 먼저 열어주셨어요.<br>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
   }
   if(finalDone()){
     h+='<div class="finale"><div class="em">🎉🏆✨</div><h2>모든 미션 완료!</h2><p>정말 대단해요! 우리 조가 방탈출에 성공했어요.</p></div>';
@@ -1296,7 +1317,7 @@ function renderHome(){
       +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div>'+extra+'</div>';
   });
   h+="</div>";
-  if(keys===5){
+  if(finalAvail){
     const fd=finalDone();
     let finalExtra="";
     if(!fd){
@@ -1353,6 +1374,7 @@ function connectFirebase(){
       }
       unlocked=d.unlocked||{};
       helpRequest=d.helpRequest||null;
+      finalUnlocked=!!d.finalUnlocked;
       if(d.notice&&d.notice.ts&&d.notice.ts!==lastNoticeTs){
         lastNoticeTs=d.notice.ts;
         showWrongNoticeModal(d.notice);
