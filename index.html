@@ -434,6 +434,7 @@ let appMode="student";
 let team=localStorage.getItem("escape_team")||"";
 let teamCount=0;
 let requiredRooms=5;
+let lastRequiredRooms=5; // 이전 requiredRooms 값 추적
 let rosterAll={};
 let teamGrades=new Set();
 let solvedIds={},randomPicks={},cooldown={};
@@ -447,6 +448,7 @@ let dashListenerAttached=false;
 let currentTab="dash";
 let lastAllData={};
 let parsedRosterPreview=null;
+let guidePumpShown=false; // 처음 시작 안내 팝업 표시 여부
 
 const urlParams=new URLSearchParams(location.search);
 const roomParamFromUrl=urlParams.get("room");
@@ -521,7 +523,7 @@ function renderDash(all){
   for(let i=2;i<=5;i++)reqHtml+='<option value="'+i+'"'+(requiredRooms===i?" selected":"")+'>'+i+'개</option>';
   reqHtml+='</select>'
     +'<button class="btn btn-primary" style="padding:6px 14px;font-size:12px" onclick="saveRequiredRooms()">저장</button>'
-    +'<span style="font-size:11px;color:var(--tx2)">방 '+requiredRooms+'개를 클리어하면 모든 조가 협동미션(강당 단체줄넘기)에 도전할 수 있어요. 어떤 방을 고를지는 자유예요.</span>'
+    +'<span style="font-size:11px;color:var(--tx2)">방 '+requiredRooms+'개 + 강당 단체 미션을 모두 클리어해야 성공이에요. 방은 어떤 순서로든 선택 가능합니다.</span>'
     +'</div>';
 
   const helpTeams=[];
@@ -545,7 +547,7 @@ function renderDash(all){
     return;
   }
 
-  let posHtml='<div class="card"><h3 style="margin-bottom:8px;">📍 조별 현재 위치</h3><table><tr><th>조</th><th>현재 위치</th><th>완료한 방</th></tr>';
+  let posHtml='<div class="card"><h3 style="margin-bottom:8px;">📍 조별 현재 위치</h3><table><tr><th>조</th><th>현재 위치</th><th>완료한 방 (강당 제외)</th></tr>';
   for(let n=1;n<=teamCount;n++){
     const d=data["team"+n]||{};
     const solved=d.solvedIds||{};
@@ -560,11 +562,11 @@ function renderDash(all){
       const cnt=QMETA[activeRid].filter(q=>solved[q[0]]).length;
       statusText=ar.emoji+' '+ar.name+' 진행 중 ('+cnt+'/8)';
     }else if(d.finalUnlocked||doneCount>=requiredRooms){
-      statusText='<span style="color:var(--gold);font-weight:800;">🤸 협동미션으로 이동 가능</span>';
+      statusText='<span style="color:var(--gold);font-weight:800;">🤸 강당 미션 진행 가능</span>';
     }else{
       statusText='<span style="color:var(--tx2);">⏳ 방 선택 대기 중</span>';
     }
-    posHtml+='<tr><td><b>'+n+'조</b></td><td>'+statusText+'</td><td>'+doneCount+' / 5</td></tr>';
+    posHtml+='<tr><td><b>'+n+'조</b></td><td>'+statusText+'</td><td>'+doneCount+' / '+requiredRooms+'</td></tr>';
   }
   posHtml+='</table></div>';
 
@@ -577,8 +579,8 @@ function renderDash(all){
     const d=data["team"+n]||{};
     const solved=d.solvedIds||{};
     let totalSolved=0,keys=0;
-    const members=Object.values(rosterAll).filter(s=>String(s.teamId)===String(n)).map(s=>escapeHtml(s.name)+"("+s.grade+")").join(", ");
-    h+="<tr><td><b>"+n+"조</b><br><span style='font-size:9px;color:var(--tx2);font-weight:400;'>"+(members||"-")+"</span></td>";
+    const members=Object.values(rosterAll).filter(s=>String(s.teamId)===String(n)).map(s=>escapeHtml(s.name)+"("+s.grade+")").join(" · ");
+    h+="<tr><td><div style='padding:8px 0;'><b style='font-size:16px;display:block;margin-bottom:4px;'>"+n+"조</b><span style='font-size:13px;color:var(--tx);font-weight:500;line-height:1.6;display:block;word-break:keep-all;'>"+(members||"명단 없음")+"</span></div></td>";
     ROOMS.forEach(r=>{
       const cnt=QMETA[r.id].filter(q=>solved[q[0]]).length;
       totalSolved+=cnt;
@@ -595,7 +597,7 @@ function renderDash(all){
     }else if(finalUnlockedFlag){
       finalCell='<span style="color:var(--gold);font-weight:800;">🔓 열림</span><br><button class="reset-mini" onclick="setFinalUnlocked('+n+',false)">잠그기</button>';
     }else{
-      finalCell='<button class="btn btn-sub" style="padding:4px 8px;font-size:11px" onclick="setFinalUnlocked('+n+',true)">🤸 지금 열기</button>';
+      finalCell='<button class="btn btn-sub" style="padding:4px 8px;font-size:11px" onclick="setFinalUnlocked('+n+',true)">🤸 지금 열기</button><br><span style="font-size:9px;color:#e11d48;font-weight:700;">(필수)</span>';
     }
     h+='<td class="prog-cell">'+finalCell+'</td>';
     h+="<td><b>"+totalSolved+" / 40</b></td><td class=\"keycount\">"+keys+" / 5</td>";
@@ -904,6 +906,10 @@ function pickTeam(n){
   computeTeamGrades();
   connectFirebase();
   view="home";renderHome();
+  // 처음 시작할 때 안내 팝업 표시
+  if(!guidePumpShown){
+    setTimeout(()=>showInitialGuidePopup(), 500);
+  }
 }
 function leaveTeam(){
   stopCamera();
@@ -918,6 +924,29 @@ function switchTeam(){
   leaveTeam();
   view="teamPick";renderTeamPick();
 }
+function showRequiredRoomsChangedNotification(newRooms){
+  // 관리자가 방 개수를 변경했을 때 학생들에게 알림
+  if(appMode!=="student"||view!=="home")return;
+  alert(
+    "📢 선생님이 방탈출 설정을 변경하셨습니다!\n\n"+
+    "🎯 " + newRooms + "개의 방 + 강당 미션을 클리어해야 성공합니다.\n\n"+
+    "지금부터 목표를 달성하기 위해 도전해보세요! 💪"
+  );
+}
+function showInitialGuidePopup(){
+  // 처음 시작할 때 안내 팝업
+  if(guidePumpShown||appMode!=="student")return;
+  guidePumpShown=true;
+  const msg=
+    "🎉 방탈출 놀이를 시작합니다!\n\n"+
+    "📝 미션:\n"+
+    "• " + requiredRooms + "개의 방 문제를 풀기\n"+
+    "• 강당에서 단체줄넘기 20개 성공\n\n"+
+    "✅ 위 미션을 모두 완료하면 성공!\n\n"+
+    "⏰ 순서 상관없이 원하는 방부터 시작하세요!\n\n"+
+    "화이팅! 🚀";
+  alert(msg);
+}
 function findQ(qid){
   const rid=qid.slice(0,2);
   const base=(QUESTIONS[rid]||[]).find(q=>q.qid===qid);
@@ -929,7 +958,7 @@ function normalize(s){return (s||"").toString().trim().replace(/\s+/g,"").toLowe
 function roomProgress(rid){return QUESTIONS[rid].filter(q=>solvedIds[q.qid]).length;}
 function totalKeys(){return ROOMS.filter(r=>roomProgress(r.id)===8).length;}
 function finalDone(){return !!solvedIds["R6Q1"];}
-function finalMissionAvailable(){return totalKeys()>=requiredRooms||finalUnlocked;}
+function finalMissionAvailable(){return true;} // 강당 미션은 언제든 도전 가능
 function activeRoomId(){
   for(const r of ROOMS){const p=roomProgress(r.id);if(p>0&&p<8)return r.id;}
   return null;
@@ -1123,7 +1152,7 @@ function handleScan(qid){
   if(!q){alert("존재하지 않는 문제예요.");view="home";renderHome();return;}
   const rid=qid.slice(0,2);
   if(rid==="R6"){
-    if(!finalMissionAvailable()){alert("아직 협동 미션을 열 수 없어요. 5개 방을 먼저 모두 클리어하거나, 선생님이 열어주실 때까지 기다려주세요.");view="home";renderHome();return;}
+    // 강당 미션은 언제든 도전 가능 (순서 제약 없음)
     if(solvedIds[qid]){showQuestionScreen(qid,"review");return;}
     showQuestionScreen(qid,"active");
     return;
@@ -1361,15 +1390,15 @@ function renderHome(){
   const keys=totalKeys();
   const finalAvail=finalMissionAvailable();
   let h="";
-  if(finalAvail&&!finalDone()){
+  if(keys>=requiredRooms&&!finalDone()){
     h+='<div class="finale"><div class="em">🤸✨</div><h2>협동 미션에 도전할 수 있어요!</h2><p>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
   }
-  if(finalDone()){
+  if(keys>=requiredRooms&&finalDone()){
     h+='<div class="finale"><div class="em">🎉🏆✨</div><h2>모든 미션 완료!</h2><p>정말 대단해요! 우리 조가 방탈출에 성공했어요.</p></div>';
   }
   h+='<div class="keys-bar">';
-  for(let i=0;i<5;i++)h+='<span class="k'+(i<keys?" on":"")+'">🔑</span>';
-  h+='<span class="keys-txt">'+keys+' / 5 조각 모음 · 협동미션은 '+requiredRooms+'개 완료 시 도전 가능</span></div>';
+  for(let i=0;i<requiredRooms;i++)h+='<span class="k'+(i<keys?" on":"")+'">🔑</span>';
+  h+='<span class="keys-txt">'+keys+' / '+requiredRooms+' 조각 모음 · '+requiredRooms+'개 방 + 강당 미션 완료 시 성공</span></div>';
   const active=activeRoomId();
   h+='<div class="room-grid">';
   ROOMS.forEach(r=>{
@@ -1396,20 +1425,19 @@ function renderHome(){
       +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div>'+extra+'</div>';
   });
   h+="</div>";
-  if(finalAvail){
-    const fd=finalDone();
-    let finalExtra="";
-    if(!fd){
-      if(unlocked["R6Q1"]){
-        finalExtra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="event.stopPropagation();openUnlocked(\'R6Q1\')">🔓 선생님이 열어주셨어요!</button>';
-      }else if(helpRequest&&helpRequest.qid==="R6Q1"){
-        finalExtra='<div style="margin-top:6px;font-size:10px;color:#b45309;font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--tx3);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
-      }
+  // 강당 미션을 일반 방처럼 항상 표시 (순서 제약 없음)
+  const fd=finalDone();
+  let finalExtra="";
+  if(!fd){
+    if(unlocked["R6Q1"]){
+      finalExtra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="event.stopPropagation();openUnlocked(\'R6Q1\')">🔓 선생님이 열어주셨어요!</button>';
+    }else if(helpRequest&&helpRequest.qid==="R6Q1"){
+      finalExtra='<div style="margin-top:6px;font-size:10px;color:#b45309;font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--tx3);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
     }
-    h+='<div class="final-card'+(fd?" done":"")+'" onclick="openFinalMission()"><div class="room-emoji">🤸</div>'
-      +'<div class="room-name">협동 미션 · 강당 단체줄넘기 20개</div>'
-      +'<div class="room-prog">'+(fd?"✅ 완료!":"터치해서 도전하기")+'</div>'+finalExtra+'</div>';
   }
+  h+='<div class="final-card'+(fd?" done":"")+'" onclick="openFinalMission()"><div class="room-emoji">🤸</div>'
+    +'<div class="room-name">협동 미션 · 강당 단체줄넘기 20개</div>'
+    +'<div class="room-prog">'+(fd?"✅ 완료!":"터치해서 도전하기")+'</div>'+finalExtra+'</div>';
   h+='<div class="team-switch" onclick="switchTeam()">다른 조 선택</div>';
   h+='<div style="height:90px"></div>';
   h+='<div class="scan-fab"><button class="btn btn-lg btn-primary" onclick="openScan()">📷 QR 스캔하기</button></div>';
@@ -1485,7 +1513,12 @@ function connectRoster(){
     if(appMode==="admin")renderRosterTab();
   });
   db.ref("escape_data/meta/requiredRooms").on("value",snap=>{
-    requiredRooms=snap.val()||5;
+    const newRequiredRooms=snap.val()||5;
+    if(newRequiredRooms!==requiredRooms&&appMode==="student"&&view==="home"){
+      // 관리자가 방 개수를 변경했을 때 알림
+      showRequiredRoomsChangedNotification(newRequiredRooms);
+    }
+    requiredRooms=newRequiredRooms;
     if(appMode==="student"){
       if(view==="home")renderHome();
       else if(view==="roomDetail")renderRoomDetail(currentRoomDetailId);
