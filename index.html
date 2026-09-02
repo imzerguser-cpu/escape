@@ -999,9 +999,13 @@ function computeTeamGrades(){
 }
 function renderTeamPick(){
   view="teamPick";
+  setScene("gate");
   setHeader();
+  const decor='<img class="decor-img gs-drift" src="assets/common_bat.png" alt="" style="left:4%;top:9%;width:70px;">'
+    +'<img class="decor-img gs-drift" src="assets/common_ghost.png" alt="" style="left:7%;bottom:14%;width:84px;filter:drop-shadow(0 0 16px rgba(255,220,150,.35));">';
+  const hero='<div class="hero-block"><div class="wood-sign-wrap"><img class="wood-sign-img" src="assets/prop_wooden_sign.png" alt=""><span class="wood-sign-label">방탈출 놀이</span></div><div class="hero-title">유령 학교의<br>저주</div><div class="hero-sub">조 편성</div></div>';
   if(teamCount<1){
-    app.innerHTML='<div class="card" style="text-align:center;"><div class="center-icon">🗂️</div><h2 style="font-size:16px;margin-bottom:8px;">아직 조가 편성되지 않았어요</h2><p style="font-size:12px;color:var(--tx2);">선생님이 명단을 올려서 조를 편성하면 여기에 표시돼요.</p></div>'+adminAccordionHtml();
+    app.innerHTML=decor+hero+'<div class="card" style="text-align:center;"><div class="center-icon">🗂️</div><h2 style="font-size:16px;margin-bottom:8px;">아직 조가 편성되지 않았어요</h2><p style="font-size:12px;">선생님이 명단을 올려서 조를 편성하면 여기에 표시돼요.</p></div>'+adminAccordionHtml();
     return;
   }
   const byTeam={};
@@ -1012,7 +1016,8 @@ function renderTeamPick(){
     if(!byTeam[n])return;
     byTeam[n].push(s);
   });
-  let h='<div class="card"><h2 style="font-size:16px;margin-bottom:6px;">조를 선택하세요</h2><p style="font-size:12px;color:var(--tx2);">우리 조를 찾아서 눌러주세요.</p></div>';
+  let h=decor+hero;
+  h+='<div class="card"><h2 style="font-size:16px;margin-bottom:6px;">조를 선택하세요</h2><p style="font-size:12px;">우리 조를 찾아서 눌러주세요.</p></div>';
   h+='<div style="display:flex;flex-direction:column;gap:12px;">';
   for(let n=1;n<=teamCount;n++){
     const members=byTeam[n].slice().sort((a,b)=>{
@@ -1020,7 +1025,7 @@ function renderTeamPick(){
       return (a.name||"").localeCompare(b.name||"","ko");
     });
     const badge=members.length?members.map(s=>escapeHtml(s.name)+"("+s.grade+")").join(" · "):"명단 없음";
-    h+='<button class="team-btn" onclick="pickTeam('+n+')" style="width:100%;padding:16px;text-align:left;display:flex;flex-direction:column;gap:6px;border:2px solid var(--bdr);background:#fff;border-radius:10px;cursor:pointer;transition:.12s;font-family:inherit;"><span style="font-size:16px;font-weight:800;color:var(--navy);">'+n+'조</span><span style="font-size:13px;font-weight:500;color:var(--tx);word-break:break-word;line-height:1.5;">'+badge+'</span></button>';
+    h+='<button class="team-btn" onclick="pickTeam('+n+')"><img class="team-btn-icon" src="'+teamIconSrc(n)+'" alt="'+n+'조"><span class="team-btn-body"><span class="team-btn-name">'+n+'조</span><span class="team-btn-members">'+badge+'</span></span></button>';
   }
   h+='</div>';
   h+=adminAccordionHtml();
