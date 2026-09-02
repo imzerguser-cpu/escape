@@ -1234,9 +1234,11 @@ function openRoomDetail(rid){
 }
 function openScan(){
   view="scan";
+  setScene("guide");
   const helpRoomId=currentHelpRoomId();
-  const helpBtn=helpRoomId?'<button class="btn btn-lg btn-sub" style="margin-top:14px;color:#b45309" onclick="requestHelp(\''+helpRoomId+"');goHome();\">🙋 선생님께 도움 요청하기</button>":"";
+  const helpBtn=helpRoomId?'<button class="btn btn-lg btn-sub" style="margin-top:14px" onclick="requestHelp(\''+helpRoomId+"');goHome();\">🙋 선생님께 도움 요청하기</button>":"";
   app.innerHTML='<div class="scan-wrap"><div class="top-back" onclick="goHome()">← 홈으로</div>'
+    +'<img src="assets/button_qr_scan.png" alt="QR 스캔하기" style="width:220px;margin:6px auto 10px;display:block;">'
     +'<div class="cam-box"><video id="vid" playsinline muted autoplay></video><div class="cam-frame"></div></div>'
     +'<div class="cam-msg" id="camMsg">카메라를 QR 코드에 비춰주세요</div>'
     +'<div class="manual-box"><h4>카메라가 안 되면 카드에 적힌 6자리 코드를 직접 입력하세요</h4>'
