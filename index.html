@@ -131,6 +131,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .final-card.has-photo{background-image:linear-gradient(180deg,rgba(15,10,25,.05) 0%,rgba(15,10,25,.15) 55%,rgba(8,6,15,.92) 100%),var(--room-photo);background-size:cover;background-position:center;}
 #studentRoot .final-card.has-photo.done{background-image:linear-gradient(180deg,rgba(20,60,30,.1) 0%,rgba(15,50,25,.3) 55%,rgba(8,45,18,.88) 100%),var(--room-photo);}
 #studentRoot[data-scene="village"] .room-card.has-photo,#studentRoot[data-scene="village"] .final-card.has-photo{justify-content:flex-end;}
+/* 컴퓨터실/VR실 사진은 안내판 글자가 이미 프레임을 꽉 채우는 구도라 cover로 자르면 글자만 확대되어 보임 —
+   이 사진들만 자르지 않고 배경 전체가 다 보이도록 함 */
+#studentRoot .room-card.has-photo.photo-contain{background-size:cover,contain;background-repeat:no-repeat,no-repeat;background-color:#0d0a17;}
 #studentRoot .room-emoji{font-size:32px;}
 /* 홈 화면(village)만: 가로 폭이 넓을 때 오른쪽 교실 카드가 화면 아래 여백 없이 꽉 차도록 세로로도 늘림 */
 #studentRoot[data-scene="village"]{display:flex;flex-direction:column;}
@@ -1589,6 +1592,7 @@ function renderHome(){
   h+='<img class="scan-btn-img" src="assets/button_qr_scan.png" alt="QR 스캔하기" onclick="openScan()">';
   h+='<div class="team-switch" onclick="switchTeam()">다른 조 선택</div>';
   h+='</div>';
+  const PHOTO_CONTAIN_ROOMS=["R2","R4"]; // 컴퓨터실·VR실은 사진 구도상 잘라내지 않고 전체를 보여줌
   h+='<div class="room-grid-3col">';
   ROOMS.forEach(r=>{
     const p=roomProgress(r.id),done=p===8;
@@ -1604,7 +1608,7 @@ function renderHome(){
         extra='<div style="margin-top:6px;font-size:10px;color:var(--gs-lilac);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();requestHelp(\''+r.id+'\')">🙋 QR을 못 찾겠어요</div>';
       }
     }
-    h+='<div class="room-card has-photo'+(done?" done":"")+'" style="--room-photo:url(\'assets/'+ROOM_PHOTO[r.id]+'\')" onclick="openRoomDetail(\''+r.id+'\')">'
+    h+='<div class="room-card has-photo'+(PHOTO_CONTAIN_ROOMS.includes(r.id)?" photo-contain":"")+(done?" done":"")+'" style="--room-photo:url(\'assets/'+ROOM_PHOTO[r.id]+'\')" onclick="openRoomDetail(\''+r.id+'\')">'
       +'<div class="room-prog">'+(done?"✅ 완료!":p+" / 8")+"</div>"
       +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div>'+extra+'</div>';
   });
