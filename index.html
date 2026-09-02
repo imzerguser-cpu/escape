@@ -102,9 +102,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .hero-block{display:flex;flex-direction:column;align-items:center;padding:22px 16px 26px;position:relative;z-index:1;}
 #studentRoot .wood-sign-wrap{position:relative;display:inline-block;}
 #studentRoot .wood-sign-img{display:block;width:190px;}
-#studentRoot .wood-sign-label{position:absolute;left:0;right:0;top:32%;font-family:'Nanum Myeongjo',serif;font-size:20px;font-weight:800;color:var(--gs-gold-lt);text-shadow:0 2px 4px rgba(0,0,0,.8);}
-#studentRoot .hero-title{margin-top:18px;font-family:'Nanum Myeongjo',serif;font-size:34px;font-weight:800;line-height:1.3;color:#fff4dc;text-shadow:0 0 20px rgba(255,190,90,.6),0 4px 10px rgba(0,0,0,.85);text-align:center;}
+#studentRoot .wood-sign-label{position:absolute;left:0;right:0;top:32%;text-align:center;font-family:'Nanum Myeongjo',serif;font-size:20px;font-weight:800;color:var(--gs-gold-lt);text-shadow:0 2px 4px rgba(0,0,0,.8);}
+#studentRoot .hero-title{margin-top:18px;font-family:'Nanum Myeongjo',serif;font-size:34px;font-weight:800;line-height:1.3;color:#fff4dc;text-shadow:0 0 20px rgba(255,190,90,.6),0 4px 10px rgba(0,0,0,.85);text-align:center;white-space:nowrap;}
 #studentRoot .hero-sub{margin-top:10px;font-family:'Nanum Gothic',sans-serif;font-size:16px;font-weight:700;letter-spacing:.08em;color:var(--gs-lilac-lt);text-shadow:0 2px 8px rgba(0,0,0,.8);text-align:center;}
+#studentRoot[data-scene="village"] .hero-sub{font-family:'Nanum Myeongjo',serif;font-size:26px;font-weight:800;letter-spacing:0;white-space:nowrap;}
+@media (max-width:700px){
+  #studentRoot .hero-title{font-size:26px;}
+  #studentRoot[data-scene="village"] .hero-sub{font-size:20px;}
+}
 
 #studentRoot .team-btn{width:100%;padding:12px 22px 12px 14px;border-radius:10px;border:none;cursor:pointer;font-family:'Nanum Gothic',sans-serif;background-image:linear-gradient(100deg,var(--gs-parchment-1),var(--gs-parchment-2));box-shadow:0 6px 18px rgba(0,0,0,.5);display:flex;align-items:center;gap:16px;text-align:left;transition:.12s;}
 #studentRoot .team-btn:active{transform:scale(.98);}
@@ -120,9 +125,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .scan-btn-img{width:100%;max-width:200px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));cursor:pointer;display:block;margin:0 auto;}
 #studentRoot .room-card{background-image:linear-gradient(170deg,var(--gs-stone-1),var(--gs-stone-2));border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.55);padding:16px 12px;text-align:center;border:2px solid var(--gs-stone-border);cursor:pointer;color:var(--gs-gold-lt);}
 #studentRoot .room-card.done{border-color:var(--gs-success-border);background-image:linear-gradient(170deg,var(--gs-success-1),var(--gs-success-2));color:#e6ffe9;}
-#studentRoot .room-card.locked{opacity:.55;}
-#studentRoot .lock-msg{font-size:10px;color:var(--gs-lilac);margin-top:6px;font-weight:700;}
 #studentRoot .room-emoji{font-size:32px;}
+/* 홈 화면(village)만: 가로 폭이 넓을 때 오른쪽 교실 카드가 화면 아래 여백 없이 꽉 차도록 세로로도 늘림 */
+#studentRoot[data-scene="village"]{display:flex;flex-direction:column;}
+#studentRoot[data-scene="village"] .wrap{flex:1;display:flex;flex-direction:column;}
+#studentRoot[data-scene="village"] .stage{flex:1;align-items:stretch;}
+#studentRoot[data-scene="village"] .side-panel{justify-content:center;}
+#studentRoot[data-scene="village"] .room-grid-3col{grid-template-rows:repeat(2,1fr);}
+#studentRoot[data-scene="village"] .room-card,#studentRoot[data-scene="village"] .final-card{display:flex;flex-direction:column;justify-content:center;}
 #studentRoot .room-emoji img{width:56px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55));}
 #studentRoot .room-name{font-family:'Nanum Myeongjo',serif;font-size:14px;font-weight:800;margin-top:4px;}
 #studentRoot .room-prog{font-size:12px;color:var(--gs-lilac);margin-top:4px;font-weight:700;}
@@ -203,8 +213,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .key-row{display:flex;justify-content:center;align-items:flex-end;gap:12px;flex-wrap:wrap;}
 #studentRoot .key-icon{width:40px;filter:drop-shadow(0 0 14px rgba(255,205,120,.95));}
 #studentRoot .key-icon.off{filter:grayscale(1) brightness(.5);opacity:.55;}
-#studentRoot .note-box{background:rgba(46,32,80,.86);border:1px solid rgba(255,205,130,.35);border-radius:8px;padding:12px 16px;color:var(--gs-gold-lt);font-weight:700;font-size:14px;line-height:1.6;box-shadow:0 6px 18px rgba(0,0,0,.55);}
-#studentRoot .note-box .sub{font-weight:400;color:var(--gs-lilac);font-size:12.5px;}
+#studentRoot .note-box{background:rgba(46,32,80,.86);border:1px solid rgba(255,205,130,.35);border-radius:8px;padding:12px 10px;color:var(--gs-gold-lt);font-weight:700;font-size:14px;line-height:1.6;box-shadow:0 6px 18px rgba(0,0,0,.55);}
+#studentRoot .note-box .sub{font-weight:400;color:var(--gs-lilac);font-size:11px;white-space:nowrap;}
 
 #studentRoot .parchment-frame{flex:1 1 380px;max-width:520px;margin:0 auto;background-image:linear-gradient(180deg,rgba(20,14,32,.15),rgba(20,14,32,.15)),url('assets/background_problem_frame.png');background-size:100% 100%,100% 100%;background-repeat:no-repeat,no-repeat;padding:9% 10% 10%;box-sizing:border-box;}
 #studentRoot .parchment-frame-inner{display:flex;flex-direction:column;align-items:center;text-align:center;}
@@ -240,6 +250,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   #studentRoot .room-grid-3col{grid-template-columns:repeat(2,minmax(0,1fr));}
   #studentRoot .stage{flex-direction:column;align-items:stretch;}
   #studentRoot .side-panel{flex:none;}
+  #studentRoot[data-scene="village"]{display:block;}
+  #studentRoot[data-scene="village"] .wrap{display:block;flex:none;}
+  #studentRoot[data-scene="village"] .stage{flex:none;}
+  #studentRoot[data-scene="village"] .side-panel{justify-content:flex-start;}
+  #studentRoot[data-scene="village"] .room-grid-3col{grid-template-rows:none;}
+  #studentRoot[data-scene="village"] .room-card,#studentRoot[data-scene="village"] .final-card{display:block;}
 }
 
 /* ===== 관리자 화면 (#adminRoot 스코프) ===== */
@@ -1006,7 +1022,7 @@ function renderTeamPick(){
   setHeader();
   const decor='<img class="decor-img gs-drift" src="assets/common_bat.png" alt="" style="left:4%;top:9%;width:70px;">'
     +'<img class="decor-img gs-drift" src="assets/common_ghost.png" alt="" style="left:7%;bottom:14%;width:84px;filter:drop-shadow(0 0 16px rgba(255,220,150,.35));">';
-  const hero='<div class="hero-block"><div class="wood-sign-wrap"><img class="wood-sign-img" src="assets/prop_wooden_sign.png" alt=""><span class="wood-sign-label">방탈출 놀이</span></div><div class="hero-title">유령 학교의<br>저주</div><div class="hero-sub">조 편성</div></div>';
+  const hero='<div class="hero-block"><div class="wood-sign-wrap"><img class="wood-sign-img" src="assets/prop_wooden_sign.png" alt=""><span class="wood-sign-label">방탈출 놀이</span></div><div class="hero-title">유령 학교의 저주</div><div class="hero-sub">조 편성</div></div>';
   if(teamCount<1){
     app.innerHTML=decor+hero+'<div class="card" style="text-align:center;"><div class="center-icon">🗂️</div><h2 style="font-size:16px;margin-bottom:8px;">아직 조가 편성되지 않았어요</h2><p style="font-size:12px;">선생님이 명단을 올려서 조를 편성하면 여기에 표시돼요.</p></div>'+adminAccordionHtml();
     return;
@@ -1075,7 +1091,7 @@ function showInitialGuidePopup(){
   const body=
     "📝 미션:<br>"+
     "• "+requiredRooms+"개의 방 문제를 풀기<br>"+
-    "• 강당에서 단체줄넘기 20개 성공<br><br>"+
+    "• 강당에서 단체줄넘기 "+jumpRopeCount()+"개 성공<br><br>"+
     "✅ 위 미션을 모두 완료하면 성공!<br><br>"+
     "⏰ 순서 상관없이 원하는 방부터 시작하세요!<br><br>"+
     "화이팅! 🚀";
@@ -1087,6 +1103,13 @@ function findQ(qid){
   if(!base)return null;
   const ov=QOVERRIDE[rid]&&QOVERRIDE[rid][qid];
   return ov?Object.assign({},base,ov):base;
+}
+/* 강당 협동 미션(단체줄넘기) 목표 개수를 R6Q1 문제 본문(관리자가 문제 관리 탭에서 수정 가능)에서 그대로 읽어온다 —
+   홈 화면·시작 안내 팝업에 숫자를 따로 하드코딩해두면 문제 내용만 고쳤을 때 서로 어긋나기 때문 */
+function jumpRopeCount(){
+  const q=findQ("R6Q1");
+  const m=(q&&q.text||"").match(/(\d+)\s*개/);
+  return m?m[1]:"20";
 }
 function normalize(s){return (s||"").toString().trim().replace(/\s+/g,"").toLowerCase();}
 function roomProgress(rid){return QUESTIONS[rid].filter(q=>solvedIds[q.qid]).length;}
@@ -1320,26 +1343,11 @@ function handleScan(qid){
     return;
   }
   if(solvedIds[qid]){showGradeGate(qid,"review");return;}
-  const active=activeRoomId();
-  if(active&&active!==rid){
-    showRoomLockedScreen(rid,ROOMS.find(r=>r.id===active));
-    return;
-  }
   const roomQids=QUESTIONS[rid].map(x=>x.qid);
   const solvedCount=roomQids.filter(id=>solvedIds[id]).length;
   const requiredQid=roomQids[solvedCount];
   if(qid!==requiredQid&&!unlocked[qid]){showQuestionScreen(qid,"locked",requiredQid);return;}
   showGradeGate(qid,"active");
-}
-function showRoomLockedScreen(rid,activeRoom){
-  view="question";activeQid=null;
-  setScene("guide");
-  const room=ROOMS.find(r=>r.id===rid);
-  let h='<div class="top-back" onclick="goHome()">← 홈으로</div><div class="card">';
-  h+='<div class="fb-box fb-lock"><img src="assets/status_locked.png" alt="">'+room.name+'은(는) 아직 시작할 수 없어요!<br>지금은 <b>'+activeRoom.name+'</b>을(를) 먼저 끝내야 해요.</div>';
-  h+='<button class="btn btn-lg btn-primary" style="margin-top:10px" onclick="requestHelp(\''+activeRoom.id+'\');goHome();">🙋 선생님께 도움 요청하기</button>';
-  h+='</div><button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
-  app.innerHTML=h;
 }
 function ensureRandomPick(q){
   if(q.type!=="random"||randomPicks[q.qid])return;
@@ -1557,14 +1565,14 @@ function renderHome(){
   let h='<img class="decor-img gs-flicker" src="assets/prop_lantern.png" alt="" style="left:2%;bottom:6%;width:64px;filter:drop-shadow(0 0 22px rgba(255,180,80,.6));">'
     +'<img class="decor-img" src="assets/common_spider_web.png" alt="" style="right:0;top:0;width:110px;opacity:.5;">';
   if(keys>=requiredRooms&&!finalDone()){
-    h+='<div class="finale"><div class="em">🤸✨</div><h2>협동 미션에 도전할 수 있어요!</h2><p>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
+    h+='<div class="finale"><div class="em">🤸✨</div><h2>협동 미션에 도전할 수 있어요!</h2><p>강당에 모여 단체줄넘기 '+jumpRopeCount()+'개에 도전해보세요.</p></div>';
   }
   if(keys>=requiredRooms&&finalDone()){
     h+='<div class="finale"><div class="em">🎉🏆✨</div><h2>모든 미션 완료!</h2><p>정말 대단해요! 우리 조가 방탈출에 성공했어요.</p></div>';
   }
   h+='<div class="stage"><div class="side-panel">';
   h+='<div class="wood-sign-wrap"><img class="wood-sign-img" src="assets/prop_wooden_sign.png" alt=""><span class="wood-sign-label">방탈출 놀이</span></div>';
-  h+='<div class="hero-sub">저주받은<br>지도</div>';
+  h+='<div class="hero-sub">저주받은 지도</div>';
   h+='<div class="key-row">';
   for(let i=0;i<requiredRooms;i++)h+='<img class="key-icon'+(i<keys?"":" off")+'" src="assets/common_key.png" alt="">';
   h+='</div>';
@@ -1572,16 +1580,11 @@ function renderHome(){
   h+='<img class="scan-btn-img" src="assets/button_qr_scan.png" alt="QR 스캔하기" onclick="openScan()">';
   h+='<div class="team-switch" onclick="switchTeam()">다른 조 선택</div>';
   h+='</div>';
-  const active=activeRoomId();
   h+='<div class="room-grid-3col">';
   ROOMS.forEach(r=>{
     const p=roomProgress(r.id),done=p===8;
-    const locked=!done&&active&&active!==r.id;
     let extra="";
-    if(locked){
-      const activeRoom=ROOMS.find(x=>x.id===active);
-      extra='<div class="lock-msg">🔒 '+activeRoom.name+' 먼저 끝내세요</div>';
-    }else if(!done){
+    if(!done){
       const roomQids=QUESTIONS[r.id].map(x=>x.qid);
       const nextQid=roomQids[p];
       if(unlocked[nextQid]){
@@ -1592,7 +1595,7 @@ function renderHome(){
         extra='<div style="margin-top:6px;font-size:10px;color:var(--gs-lilac);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();requestHelp(\''+r.id+'\')">🙋 QR을 못 찾겠어요</div>';
       }
     }
-    h+='<div class="room-card'+(done?" done":"")+(locked?" locked":"")+'" onclick="openRoomDetail(\''+r.id+'\')"><div class="room-emoji"><img src="assets/'+ROOM_ICON[r.id]+'" alt=""></div>'
+    h+='<div class="room-card'+(done?" done":"")+'" onclick="openRoomDetail(\''+r.id+'\')"><div class="room-emoji"><img src="assets/'+ROOM_ICON[r.id]+'" alt=""></div>'
       +'<div class="room-name">'+r.name+"</div>"
       +'<div class="room-prog">'+(done?"✅ 완료!":p+" / 8")+"</div>"
       +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div>'+extra+'</div>';
@@ -1607,7 +1610,7 @@ function renderHome(){
     }
   }
   h+='<div class="final-card'+(fd?" done":"")+'" onclick="openFinalMission()"><div class="room-emoji"><img src="assets/'+FINAL_ROOM_ICON+'" alt=""></div>'
-    +'<div class="room-name">협동 미션 · 강당 단체줄넘기 20개</div>'
+    +'<div class="room-name">협동 미션 · 강당 단체줄넘기 '+jumpRopeCount()+'개</div>'
     +'<div class="room-prog">'+(fd?"✅ 완료!":"터치해서 도전하기")+'</div>'+finalExtra+'</div>';
   h+='</div></div>';
   app.innerHTML=h;
@@ -1622,8 +1625,6 @@ function renderRoomDetail(rid){
   if(!room){view="home";renderHome();return;}
   const roomQids=QUESTIONS[rid].map(x=>x.qid);
   const p=roomProgress(rid);
-  const active=activeRoomId();
-  const locked=p===0&&active&&active!==rid;
   const isPopup=!!window.opener;
   const keys=totalKeys();
   let h='<div class="room-detail-layout">';
@@ -1639,11 +1640,10 @@ function renderRoomDetail(rid){
   h+='<img class="room-icon-lg" src="assets/'+(ROOM_ICON[rid]||FINAL_ROOM_ICON)+'" alt="">';
   h+='<div class="room-title">'+room.name+'</div>';
   h+='<div class="room-subprog">'+p+' / 8 해결</div>';
-  if(locked)h+='<div class="grade-warn" style="margin-top:10px">🔒 지금은 <b>'+ROOMS.find(x=>x.id===active).name+'</b>을(를) 먼저 풀어야 이 방 QR이 열려요.</div>';
   h+='<div class="mission-grid">';
   roomQids.forEach((qid,i)=>{
     const solved=!!solvedIds[qid];
-    const isNext=!solved&&i===p&&!locked;
+    const isNext=!solved&&i===p;
     const stateClass=solved?"solved":(isNext?"next gs-twinkle":"locked");
     h+='<div class="mission-icon '+stateClass+'">';
     h+='<img src="assets/mission_'+(i+1)+'.png" alt="'+(i+1)+'">';
