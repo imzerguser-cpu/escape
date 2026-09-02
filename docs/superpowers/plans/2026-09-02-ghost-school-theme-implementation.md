@@ -1672,3 +1672,152 @@ Replace with:
 git add index.html
 git commit -m "fix: address celebration overflow, decor stacking, locked-icon, centering, and stat-scope issues from final review"
 ```
+
+---
+
+### Task 12: Second-pass fix batch (from the re-review after Tasks 10-11)
+
+A second whole-branch review, run after Tasks 10-11 landed, confirmed all 6 fixes from Task 11 work correctly, but found one new Important issue that Task 10 introduced (the home screen is now wider than the room-detail screen it links to, so tapping into a room visibly shrinks the stage on the same tablet) plus four small Minor issues. This task fixes all of them in one batch.
+
+**Files:**
+- Modify: `index.html` — the `<style>` block (5 edits: widen the `corridor` scene, widen `.room-detail-layout`'s gap, neutralize `.parchment-frame`'s margin inside that layout, relocate the `max-width:700px` media query, remove `.final-card`'s stray top margin, hasrden `.modal-ov`/`.modal-box`) and `showRoomLockedScreen()` (1 edit)
+
+**Interfaces:** No new classes or helpers. Every change is a CSS property tweak on an existing rule, one new CSS rule using an existing class name in a new combinator, or a one-line markup change inside one function.
+
+- [ ] **Step 1: Widen the room-detail (`corridor`) scene to match home's stage width, without breaking its two-column balance**
+
+Find:
+
+```css
+#studentRoot[data-scene="village"] .wrap{max-width:1040px;}
+```
+
+Replace with:
+
+```css
+#studentRoot[data-scene="village"] .wrap{max-width:1040px;}
+#studentRoot[data-scene="corridor"] .wrap{max-width:1040px;}
+```
+
+Then find:
+
+```css
+#studentRoot .room-detail-layout{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;justify-content:center;position:relative;z-index:1;}
+```
+
+Replace with:
+
+```css
+#studentRoot .room-detail-layout{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;justify-content:center;position:relative;z-index:1;}
+#studentRoot .room-detail-layout>.parchment-frame{margin:0;}
+```
+
+(Task 11 added `margin:0 auto` directly to `.parchment-frame` to center it as a standalone block in `showQuestionScreen()`. That's still correct there. But `.parchment-frame` is also a flex item inside `.room-detail-layout`, and now that this layout's `.wrap` is wider, auto margins on a flex item absorb 100% of the row's free space — which would push the frame off-center and leave the side panel stranded with a huge gap. The new `#studentRoot .room-detail-layout>.parchment-frame{margin:0;}` rule has higher specificity (a class + child combinator) than the plain `.parchment-frame` rule, so it wins here regardless of source order, restoring `justify-content:center`'s normal flex centering for this one consumer while leaving `showQuestionScreen()`'s standalone usage untouched.)
+
+- [ ] **Step 2: Move the `max-width:700px` media query below every rule it overrides**
+
+Find:
+
+```css
+#studentRoot .scan-btn-img{width:100%;max-width:200px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));cursor:pointer;display:block;margin:0 auto;}
+@media (max-width:700px){
+  #studentRoot .room-grid-3col{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #studentRoot .stage{flex-direction:column;align-items:stretch;}
+  #studentRoot .side-panel{flex:none;}
+}
+```
+
+Replace with:
+
+```css
+#studentRoot .scan-btn-img{width:100%;max-width:200px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));cursor:pointer;display:block;margin:0 auto;}
+```
+
+(deleting only the `@media` block here — the `.scan-btn-img` rule above it stays)
+
+Then find:
+
+```css
+#studentRoot .confetti-cv{position:fixed;inset:0;pointer-events:none;z-index:300;}
+```
+
+Replace with:
+
+```css
+#studentRoot .confetti-cv{position:fixed;inset:0;pointer-events:none;z-index:300;}
+@media (max-width:700px){
+  #studentRoot .room-grid-3col{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #studentRoot .stage{flex-direction:column;align-items:stretch;}
+  #studentRoot .side-panel{flex:none;}
+}
+```
+
+(this is the exact same media-query block, moved to the end of the `#studentRoot` CSS section — right before the `/* ===== 관리자 화면 ===== */` comment. Reason: `.side-panel{flex:0 0 200px}` is defined later in the file than where this media query originally sat, and both selectors have equal specificity, so source order decided the winner — meaning `flex:none` was silently losing to `flex:0 0 200px` on every phone-width screen. Moving the whole media query after all the rules it's meant to override fixes this for good.)
+
+- [ ] **Step 3: Remove `.final-card`'s stray top margin now that it's a grid item, not a stacked block**
+
+Find:
+
+```css
+#studentRoot .final-card{background-image:linear-gradient(170deg,var(--gs-stone-1),var(--gs-stone-2));border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.55);padding:16px 12px;text-align:center;border:2px solid var(--gs-gold);margin-top:12px;cursor:pointer;color:var(--gs-gold-lt);}
+```
+
+Replace with:
+
+```css
+#studentRoot .final-card{background-image:linear-gradient(170deg,var(--gs-stone-1),var(--gs-stone-2));border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.55);padding:16px 12px;text-align:center;border:2px solid var(--gs-gold);cursor:pointer;color:var(--gs-gold-lt);}
+```
+
+(`margin-top:12px` was needed when this card stacked below a single-column room list; inside `.room-grid-3col`'s grid, that extra margin makes the final card's row shorter than its siblings' row. `.room-grid-3col`'s own `gap:16px` already provides spacing between rows, so the margin is redundant now, not just misplaced.)
+
+- [ ] **Step 4: Harden `.modal-ov`/`.modal-box` the same way Task 11 hardened `.celebrate-ov`/`.celebrate-inner`**
+
+Find:
+
+```css
+#studentRoot .modal-ov{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;}
+#studentRoot .modal-box{background-image:linear-gradient(170deg,var(--gs-parchment-1),var(--gs-parchment-2));border-radius:16px;padding:26px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.6);color:var(--gs-ink-brown);}
+```
+
+Replace with:
+
+```css
+#studentRoot .modal-ov{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+#studentRoot .modal-box{background-image:linear-gradient(170deg,var(--gs-parchment-1),var(--gs-parchment-2));border-radius:16px;padding:26px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.6);color:var(--gs-ink-brown);margin:auto;}
+```
+
+(Task 11 only added `overflow-y:auto` here, which isn't enough by itself: `align-items:center` on an overflowing flex container still clips the top of tall content with no way to scroll to it. `align-items:flex-start` + `margin:auto` on the box is the same centers-when-it-fits/scrolls-when-it-doesn't pattern already used for `.celebrate-ov`/`.celebrate-inner`.)
+
+- [ ] **Step 5: Make `showRoomLockedScreen()`'s lock icon match the inline pattern every other feedback box in the app now uses**
+
+Find:
+
+```js
+  let h='<div class="top-back" onclick="goHome()">← 홈으로</div><div class="card">';
+  h+='<img class="modal-icon" src="assets/status_locked.png" alt="">';
+  h+='<div class="fb-box fb-lock">'+room.name+'은(는) 아직 시작할 수 없어요!<br>지금은 <b>'+activeRoom.name+'</b>을(를) 먼저 끝내야 해요.</div>';
+```
+
+Replace with:
+
+```js
+  let h='<div class="top-back" onclick="goHome()">← 홈으로</div><div class="card">';
+  h+='<div class="fb-box fb-lock"><img src="assets/status_locked.png" alt="">'+room.name+'은(는) 아직 시작할 수 없어요!<br>지금은 <b>'+activeRoom.name+'</b>을(를) 먼저 끝내야 해요.</div>';
+```
+
+(drops the separate 56px `.modal-icon` block above the box in favor of the same 28px inline icon already used by every `fb-ok`/`fb-bad`/`fb-review`/`fb-lock` box elsewhere in the app, including `showQuestionScreen()`'s own locked branch from Task 11 — this was the one remaining place still doing it differently.)
+
+- [ ] **Step 6: Verify**
+
+- `grep -n 'data-scene="corridor"\] .wrap' index.html` and confirm it's set to `max-width:1040px`.
+- `grep -n "room-detail-layout>.parchment-frame" index.html` — confirm the override rule exists.
+- `grep -n "@media (max-width:700px)" index.html` — confirm there is exactly one such block, and that it now appears after the `.side-panel` rule in the file (use line numbers to confirm the order).
+- `grep -n "modal-icon" index.html` — should still find the CSS rule and the 3 remaining `showInfoModal`-based usages (`showWrongNoticeModal`/`showInitialGuidePopup`/`showRequiredRoomsChangedNotification` all go through `showInfoModal`, which still uses `.modal-icon`) — just not inside `showRoomLockedScreen()` anymore.
+- `node --test scripts/roster-utils.test.js` — 26/26.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add index.html
+git commit -m "fix: match room-detail's stage width to home, fix media-query source order, and other second-review polish"
+```
