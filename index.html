@@ -1758,7 +1758,7 @@ function connectQuestionOverrides(){
 }
 function renderQuestionsTab(){
   let h='<div class="card"><h3 style="margin-bottom:8px;">PDF로 일괄 수정</h3>';
-  h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px;">이 "문제 관리" 화면을 인쇄해서 만든 PDF를 열어 내용을 고친 뒤 다시 올리면, 바뀐 문제만 찾아서 한 번에 저장할 수 있어요. (그림/도형이 있는 문제의 그림 자체는 여기서 바꿀 수 없어요)</div>';
+  h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px;">이 "문제 관리" 화면을 인쇄해서 만든 PDF를 열어 내용을 고친 뒤 다시 올리면, 바뀐 문제만 찾아서 한 번에 저장할 수 있어요. (그림은 PDF로 바꿀 수 없어요 — 아래 각 문제의 "그림" 항목에서 파일로 올려주세요)</div>';
   h+='<input type="file" id="qPdfInp" accept="application/pdf" onchange="loadFromQuestionsPdf(this.files[0])">';
   h+='<div id="qPdfErr" style="display:none;color:var(--red);font-size:12px;margin-top:8px;"></div>';
   h+='</div>';
@@ -1781,7 +1781,7 @@ function renderQuestionsTab(){
     }
     h+='</div>';
   }
-  h+='<div class="card" style="font-size:12px;color:var(--tx2)">문제 내용을 고치고 저장하면 학생 화면에 바로 반영됩니다. (그림/도형은 여기서 수정할 수 없어요 — 필요하면 별도로 요청해주세요)</div>';
+  h+='<div class="card" style="font-size:12px;color:var(--tx2)">문제 내용을 고치고 저장하면 학생 화면에 바로 반영됩니다.</div>';
   ALL_ROOMS.forEach(r=>{
     h+='<div class="card"><h3 style="margin-bottom:6px">'+r.emoji+' '+r.name+'</h3>';
     (QFULL[r.id]||[]).forEach(q=>{
@@ -1792,6 +1792,9 @@ function renderQuestionsTab(){
       const curUnit=ov.unit!==undefined?ov.unit:unit;
       const curGrade=ov.grade!==undefined?ov.grade:grade;
       const isRandom=answer===null;
+      const baseQ=(QUESTIONS[r.id]||[]).find(x=>x.qid===qid);
+      const baseImg=(baseQ&&baseQ.img)||"";
+      const curImg=ov.img!==undefined?ov.img:baseImg;
       h+='<div class="qedit">';
       h+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;"><b>'+qid+'</b>';
       h+='<select id="qg_'+qid+'" style="padding:4px 6px;border-radius:6px;border:1px solid var(--bdr);font-size:12px;">';
@@ -1803,6 +1806,12 @@ function renderQuestionsTab(){
       h+='<label style="font-size:12px;color:var(--tx2)">정답</label>';
       h+=isRandom?'<span style="font-size:11px;color:var(--tx2)">(랜덤 출제라 정답 수정 불가)</span>':'<input type="text" id="qa_'+qid+'" value="'+escapeHtml(curAnswer)+'">';
       h+='<button class="btn btn-primary" style="padding:6px 12px;font-size:11px;margin-left:auto" onclick="saveQuestion(\''+r.id+'\',\''+qid+'\','+isRandom+')">💾 저장</button>';
+      h+='</div>';
+      h+='<div style="display:flex;gap:10px;margin-top:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--bdr);padding-top:8px;">';
+      h+='<label style="font-size:12px;color:var(--tx2)">그림</label>';
+      h+=curImg?('<div style="max-width:110px;max-height:80px;overflow:hidden;border:1px solid var(--bdr);border-radius:6px;padding:2px;background:#fff;">'+curImg+'</div>'):'<span style="font-size:11px;color:var(--tx3)">없음</span>';
+      h+='<input type="file" accept="image/*" onchange="uploadQuestionImage(\''+r.id+'\',\''+qid+'\',this.files[0])">';
+      if(ov.img!==undefined)h+='<button class="btn btn-sub" style="padding:4px 8px;font-size:11px" onclick="clearQuestionImage(\''+r.id+'\',\''+qid+'\')">원래 그림으로</button>';
       h+='</div></div>';
     });
     h+='</div>';
@@ -1819,6 +1828,36 @@ function saveQuestion(rid,qid,isRandom){
     if(a)upd.answer=a.value.trim();
   }
   db.ref("escape_data/questions/"+rid+"/"+qid).update(upd).then(()=>alert(qid+" 문제가 저장되었습니다. 학생 화면에 바로 반영됩니다."));
+}
+/* 문제 그림은 PDF가 아니라 파일로 직접 올린다 — 업로드한 사진을 캔버스로 축소·압축해
+   data URL로 만든 뒤 QOVERRIDE.img에 저장한다 (풀이과정 캔버스를 저장할 때와 같은 방식) */
+function uploadQuestionImage(rid,qid,file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    const img=new Image();
+    img.onload=function(){
+      const maxW=700;
+      const scale=Math.min(1,maxW/img.width);
+      const w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
+      const canvas=document.createElement("canvas");
+      canvas.width=w;canvas.height=h;
+      canvas.getContext("2d").drawImage(img,0,0,w,h);
+      const dataUrl=canvas.toDataURL("image/jpeg",0.82);
+      const imgHtml='<img src="'+dataUrl+'" alt="" style="max-width:100%;border-radius:8px;">';
+      db.ref("escape_data/questions/"+rid+"/"+qid).update({img:imgHtml}).then(()=>{
+        alert(qid+"의 그림이 저장되었습니다. 학생 화면에 바로 반영됩니다.");
+      }).catch(e=>alert("저장 중 오류가 발생했어요: "+e.message));
+    };
+    img.onerror=function(){alert("이미지를 읽을 수 없어요. 다른 파일로 시도해주세요.");};
+    img.src=reader.result;
+  };
+  reader.onerror=function(){alert("파일을 읽는 중 오류가 발생했어요.");};
+  reader.readAsDataURL(file);
+}
+function clearQuestionImage(rid,qid){
+  if(!confirm(qid+"의 그림을 원래 그림으로 되돌릴까요?"))return;
+  db.ref("escape_data/questions/"+rid+"/"+qid+"/img").remove().then(()=>alert("원래 그림으로 되돌렸습니다."));
 }
 /* PDF 문제 일괄 수정: "문제 관리" 화면을 인쇄한 PDF(요소마다 "R1Q1 1학년 단원명" 줄 → 문제 본문 → "정답 값" 줄
    순서로 나옴)를 읽어서 QFULL/QOVERRIDE 대비 달라진 문제만 찾아 미리보기로 보여준다. */
