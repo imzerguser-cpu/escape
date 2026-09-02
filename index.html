@@ -7,117 +7,240 @@
 <title>🔑 방탈출 놀이</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Gothic:wght@400;700;800&display=swap');
 :root{--navy:#1B2E4A;--navy-l:#2A4470;--navy-g:#3B6BA5;--sky:#4DA3E8;--sky-p:#E8F4FD;--red:#E0465A;--green:#2DAA6E;--orange:#E8833A;--gold:#D4A017;--purple:#B15CFF;--bg:#F3F5F8;--card:#FFF;--tx:#1E2D3D;--tx2:#6B7D8F;--tx3:#A4B3C2;--bdr:#E0E7EF;--sh:0 1px 4px rgba(27,46,74,.07);--r:12px;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html{font-size:16px;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);line-height:1.5;min-height:100vh;overflow-x:hidden;}
 
-/* ===== 학생 화면 (#studentRoot 스코프) ===== */
-#studentRoot .hd{background:linear-gradient(135deg,var(--navy),var(--navy-g));color:#fff;padding:14px 16px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:space-between;}
+/* ===== 학생 화면 (#studentRoot 스코프) — 유령 학교의 저주 테마 ===== */
+#studentRoot{
+  --gs-bg:#120d21;
+  --gs-ink:#efe6cf;
+  --gs-gold:#ffcf7a;
+  --gs-gold-lt:#ffe9b8;
+  --gs-lilac:#c9b9e8;
+  --gs-lilac-lt:#e2c6ff;
+  --gs-green:#9ce6b4;
+  --gs-red:#ff8fa0;
+  --gs-parchment-1:rgba(236,220,180,.96);
+  --gs-parchment-2:rgba(214,193,146,.96);
+  --gs-ink-brown:#3f2c14;
+  --gs-ink-brown-2:#5f4a26;
+  --gs-stone-1:rgba(58,40,96,.9);
+  --gs-stone-2:rgba(34,23,62,.92);
+  --gs-stone-border:rgba(255,205,130,.4);
+  --gs-success-1:rgba(60,86,58,.9);
+  --gs-success-2:rgba(28,48,32,.92);
+  --gs-success-border:rgba(140,230,160,.5);
+  position:relative;
+  background:var(--gs-bg);
+  color:var(--gs-ink);
+  font-family:'Nanum Gothic',sans-serif;
+  min-height:100vh;
+}
+#studentRoot h1,#studentRoot h2,#studentRoot h3{font-family:'Nanum Myeongjo',serif;}
+
+@keyframes gs-drift{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes gs-flicker{0%,100%{opacity:.9}45%{opacity:1}70%{opacity:.74}}
+@keyframes gs-twinkle{0%,100%{opacity:.55;transform:scale(.94)}50%{opacity:1;transform:scale(1.05)}}
+#studentRoot .gs-drift{animation:gs-drift 6s ease-in-out infinite;}
+#studentRoot .gs-flicker{animation:gs-flicker 2.8s infinite;}
+#studentRoot .gs-twinkle{animation:gs-twinkle 2.6s ease-in-out infinite;}
+@media (prefers-reduced-motion: reduce){
+  #studentRoot .gs-drift,#studentRoot .gs-flicker,#studentRoot .gs-twinkle{animation:none!important;}
+}
+
+/* 배경 장면 (data-scene 속성으로 전환) */
+#studentRoot[data-scene="gate"]{
+  background-image:linear-gradient(180deg,rgba(18,13,33,.35),rgba(18,13,33,.82)),url('assets/background_castle_gate.png');
+  background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;background-attachment:fixed,fixed;
+}
+#studentRoot[data-scene="village"]{
+  background-image:linear-gradient(180deg,rgba(18,13,33,.4),rgba(18,13,33,.85)),url('assets/background_classroom_select.png');
+  background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;background-attachment:fixed,fixed;
+}
+#studentRoot[data-scene="corridor"]{
+  background-image:linear-gradient(180deg,rgba(18,13,33,.3),rgba(18,13,33,.8)),url('assets/background_mission_select.png');
+  background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;background-attachment:fixed,fixed;
+}
+#studentRoot[data-scene="study"]{
+  background-image:linear-gradient(180deg,rgba(18,13,33,.35),rgba(18,13,33,.82)),url('assets/background_problem_example.png');
+  background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;background-attachment:fixed,fixed;
+}
+#studentRoot[data-scene="guide"]{
+  background-image:linear-gradient(180deg,rgba(18,13,33,.3),rgba(18,13,33,.8)),url('assets/background_mission_guide.png');
+  background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;background-attachment:fixed,fixed;
+}
+
+#studentRoot .decor-img{position:fixed;z-index:-1;pointer-events:none;}
+
+#studentRoot .hd{background:linear-gradient(180deg,#1b1430,#120d21);color:var(--gs-gold-lt);padding:12px 16px;position:sticky;top:0;z-index:50;box-shadow:0 2px 16px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid rgba(255,205,130,.35);}
 #studentRoot .hd-l{display:flex;flex-direction:column;}
-#studentRoot .hd-title{font-size:17px;font-weight:900;}
-#studentRoot .hd-team{font-size:11px;opacity:.75;margin-top:1px;}
-#studentRoot .sync-ind{font-size:10px;opacity:.85;display:flex;align-items:center;gap:4px;}
+#studentRoot .hd-title{font-family:'Nanum Myeongjo',serif;font-size:16px;font-weight:800;color:var(--gs-gold-lt);text-shadow:0 2px 6px rgba(0,0,0,.7);}
+#studentRoot .hd-team{font-size:11px;color:var(--gs-lilac);margin-top:1px;}
+#studentRoot .sync-ind{font-size:10px;color:var(--gs-lilac);display:flex;align-items:center;gap:4px;}
 #studentRoot .sync-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
-#studentRoot .sync-on{background:#4ADE80;}#studentRoot .sync-off{background:#F59E0B;}#studentRoot .sync-err{background:#EF4444;}
-#studentRoot .wrap{max-width:640px;margin:0 auto;padding:16px 14px 40px;}
-#studentRoot .btn{border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:800;transition:.12s;}
+#studentRoot .sync-on{background:#7ee39c;box-shadow:0 0 8px rgba(126,227,156,.9);}
+#studentRoot .sync-off{background:#f0c05a;}
+#studentRoot .sync-err{background:#ff6b7a;}
+#studentRoot .wrap{max-width:640px;margin:0 auto;padding:16px 14px 40px;position:relative;z-index:1;}
+
+#studentRoot .btn{border:none;border-radius:10px;cursor:pointer;font-family:'Nanum Gothic',sans-serif;font-weight:800;transition:.12s;}
 #studentRoot .btn:active{transform:scale(.97);}
-#studentRoot .btn-lg{padding:16px;font-size:17px;width:100%;color:#fff;}
-#studentRoot .btn-primary{background:linear-gradient(135deg,var(--sky),var(--navy-g));}
-#studentRoot .btn-sub{background:#fff;color:var(--navy);border:2px solid var(--bdr);}
-#studentRoot .btn-danger{background:var(--red);color:#fff;}
-#studentRoot .btn-green{background:var(--green);color:#fff;}
-#studentRoot .card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:18px;margin-bottom:14px;}
-#studentRoot .name-row{display:flex;gap:8px;}
-#studentRoot .team-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
-@media(min-width:480px){#studentRoot .team-grid{grid-template-columns:repeat(3,1fr);}}
-#studentRoot .team-btn{padding:26px 10px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;background:#fff;box-shadow:var(--sh);font-size:20px;font-weight:900;color:var(--navy);transition:.12s;}
-#studentRoot .team-btn:active{transform:scale(.96);background:var(--sky-p);}
-#studentRoot .team-btn.picked{background:var(--sky-p);box-shadow:inset 0 0 0 2px var(--sky);}
-#studentRoot .keys-bar{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px;background:linear-gradient(135deg,#FFF7E0,#FFEFC2);border-radius:var(--r);margin-bottom:14px;border:1px solid #F0DFA0;}
-#studentRoot .keys-bar .k{font-size:26px;filter:grayscale(1) opacity(.35);}
-#studentRoot .keys-bar .k.on{filter:none;}
-#studentRoot .keys-txt{font-size:12px;color:#7C5A00;font-weight:700;margin-left:8px;}
-#studentRoot .room-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-#studentRoot .room-card{background:#fff;border-radius:14px;box-shadow:var(--sh);padding:16px 12px;text-align:center;border:2px solid transparent;cursor:pointer;}
-#studentRoot .room-card.done{border-color:var(--green);background:#F0FBF5;}
-#studentRoot .room-card.locked{opacity:.5;}
-#studentRoot .lock-msg{font-size:10px;color:var(--tx3);margin-top:6px;font-weight:700;}
+#studentRoot .btn:disabled{opacity:.55;cursor:default;}
+#studentRoot .btn-lg{padding:16px;font-size:17px;width:100%;}
+#studentRoot .btn-primary{background:linear-gradient(180deg,#ffe9b8,#d9a03e);color:#3f2c14;box-shadow:0 6px 16px rgba(0,0,0,.45);}
+#studentRoot .btn-sub{background:rgba(46,32,80,.7);color:var(--gs-gold-lt);border:2px solid rgba(255,205,130,.4);}
+#studentRoot .btn-danger{background:#c94a5a;color:#fff4dc;}
+#studentRoot .btn-green{background:linear-gradient(180deg,#bdf0cd,#5fb87e);color:#173821;}
+
+#studentRoot .card{background-image:linear-gradient(170deg,var(--gs-parchment-1),var(--gs-parchment-2));border-radius:14px;box-shadow:0 14px 32px rgba(0,0,0,.55);padding:18px;margin-bottom:14px;color:var(--gs-ink-brown);border:1px solid rgba(140,105,55,.35);}
+#studentRoot .card h2{color:var(--gs-ink-brown);}
+#studentRoot .card p{color:var(--gs-ink-brown-2);}
+
+#studentRoot .hero-block{display:flex;flex-direction:column;align-items:center;padding:22px 16px 26px;position:relative;z-index:1;}
+#studentRoot .wood-sign-wrap{position:relative;display:inline-block;}
+#studentRoot .wood-sign-img{display:block;width:190px;}
+#studentRoot .wood-sign-label{position:absolute;left:0;right:0;top:32%;font-family:'Nanum Myeongjo',serif;font-size:20px;font-weight:800;color:var(--gs-gold-lt);text-shadow:0 2px 4px rgba(0,0,0,.8);}
+#studentRoot .hero-title{margin-top:18px;font-family:'Nanum Myeongjo',serif;font-size:34px;font-weight:800;line-height:1.3;color:#fff4dc;text-shadow:0 0 20px rgba(255,190,90,.6),0 4px 10px rgba(0,0,0,.85);text-align:center;}
+#studentRoot .hero-sub{margin-top:10px;font-family:'Nanum Gothic',sans-serif;font-size:16px;font-weight:700;letter-spacing:.08em;color:var(--gs-lilac-lt);text-shadow:0 2px 8px rgba(0,0,0,.8);text-align:center;}
+
+#studentRoot .team-btn{width:100%;padding:12px 22px 12px 14px;border-radius:10px;border:none;cursor:pointer;font-family:'Nanum Gothic',sans-serif;background-image:linear-gradient(100deg,var(--gs-parchment-1),var(--gs-parchment-2));box-shadow:0 6px 18px rgba(0,0,0,.5);display:flex;align-items:center;gap:16px;text-align:left;transition:.12s;}
+#studentRoot .team-btn:active{transform:scale(.98);}
+#studentRoot .team-btn-icon{width:44px;flex:none;filter:drop-shadow(0 3px 5px rgba(0,0,0,.45));}
+#studentRoot .team-btn-body{min-width:0;display:flex;flex-direction:column;gap:2px;}
+#studentRoot .team-btn-name{font-family:'Nanum Myeongjo',serif;font-size:18px;font-weight:800;color:var(--gs-ink-brown);}
+#studentRoot .team-btn-members{font-size:12.5px;color:var(--gs-ink-brown-2);line-height:1.4;word-break:keep-all;}
+
+#studentRoot[data-scene="village"] .wrap{max-width:1040px;}
+#studentRoot[data-scene="corridor"] .wrap{max-width:1040px;}
+#studentRoot .stage{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;}
+#studentRoot .room-grid-3col{flex:1 1 480px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-content:start;}
+#studentRoot .scan-btn-img{width:100%;max-width:200px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));cursor:pointer;display:block;margin:0 auto;}
+#studentRoot .room-card{background-image:linear-gradient(170deg,var(--gs-stone-1),var(--gs-stone-2));border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.55);padding:16px 12px;text-align:center;border:2px solid var(--gs-stone-border);cursor:pointer;color:var(--gs-gold-lt);}
+#studentRoot .room-card.done{border-color:var(--gs-success-border);background-image:linear-gradient(170deg,var(--gs-success-1),var(--gs-success-2));color:#e6ffe9;}
+#studentRoot .room-card.locked{opacity:.55;}
+#studentRoot .lock-msg{font-size:10px;color:var(--gs-lilac);margin-top:6px;font-weight:700;}
 #studentRoot .room-emoji{font-size:32px;}
-#studentRoot .room-name{font-size:13px;font-weight:800;margin-top:4px;}
-#studentRoot .room-prog{font-size:12px;color:var(--tx2);margin-top:4px;font-weight:700;}
-#studentRoot .room-bar{height:6px;background:#E7ECF2;border-radius:3px;margin-top:6px;overflow:hidden;}
-#studentRoot .room-bar-f{height:100%;background:var(--sky);border-radius:3px;transition:width .3s;}
-#studentRoot .room-card.done .room-bar-f{background:var(--green);}
-#studentRoot .final-card{background:#fff;border-radius:14px;box-shadow:var(--sh);padding:16px 12px;text-align:center;border:2px solid var(--gold);background:#FFFBEA;margin-top:12px;cursor:pointer;}
-#studentRoot .final-card.done{border-color:var(--green);background:#F0FBF5;}
-#studentRoot .scan-fab{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:min(560px,calc(100% - 32px));z-index:40;}
-#studentRoot .scan-fab button{padding:18px;border-radius:16px;font-size:18px;box-shadow:0 6px 20px rgba(27,46,74,.35);}
-#studentRoot .team-switch{font-size:11px;color:var(--tx3);text-align:center;margin-top:18px;text-decoration:underline;cursor:pointer;}
-#studentRoot .scan-wrap{text-align:center;}
-#studentRoot .cam-box{position:relative;width:100%;max-width:420px;margin:10px auto;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:1/1;}
+#studentRoot .room-emoji img{width:56px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55));}
+#studentRoot .room-name{font-family:'Nanum Myeongjo',serif;font-size:14px;font-weight:800;margin-top:4px;}
+#studentRoot .room-prog{font-size:12px;color:var(--gs-lilac);margin-top:4px;font-weight:700;}
+#studentRoot .room-card.done .room-prog{color:var(--gs-green);}
+#studentRoot .room-bar{height:6px;background:rgba(0,0,0,.35);border-radius:3px;margin-top:6px;overflow:hidden;}
+#studentRoot .room-bar-f{height:100%;background:var(--gs-gold);border-radius:3px;transition:width .3s;}
+#studentRoot .room-card.done .room-bar-f{background:var(--gs-green);}
+#studentRoot .final-card{background-image:linear-gradient(170deg,var(--gs-stone-1),var(--gs-stone-2));border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.55);padding:16px 12px;text-align:center;border:2px solid var(--gs-gold);cursor:pointer;color:var(--gs-gold-lt);}
+#studentRoot .final-card.done{border-color:var(--gs-success-border);background-image:linear-gradient(170deg,var(--gs-success-1),var(--gs-success-2));color:#e6ffe9;}
+
+#studentRoot .team-switch{font-size:11px;color:var(--gs-lilac);text-align:center;margin-top:18px;text-decoration:underline;cursor:pointer;}
+
+#studentRoot .scan-wrap{text-align:center;position:relative;z-index:1;}
+#studentRoot .cam-box{position:relative;width:100%;max-width:420px;margin:10px auto;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:1/1;border:4px solid var(--gs-gold);box-shadow:0 0 24px rgba(255,205,120,.35),0 14px 30px rgba(0,0,0,.6);}
 #studentRoot .cam-box video{width:100%;height:100%;object-fit:cover;}
-#studentRoot .cam-frame{position:absolute;inset:14%;border:3px solid #fff;border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.35);}
-#studentRoot .cam-msg{font-size:12px;color:var(--tx2);margin:8px 0;}
-#studentRoot .manual-box{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:14px;margin-top:16px;}
-#studentRoot .manual-box h4{font-size:13px;color:var(--tx2);margin-bottom:8px;}
+#studentRoot .cam-frame{position:absolute;inset:14%;border:3px solid var(--gs-gold-lt);border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.45);}
+#studentRoot .cam-msg{font-size:12px;color:var(--gs-lilac);margin:8px 0;}
+#studentRoot .manual-box{background-image:linear-gradient(170deg,var(--gs-parchment-1),var(--gs-parchment-2));border-radius:12px;box-shadow:0 10px 24px rgba(0,0,0,.5);padding:14px;margin-top:16px;color:var(--gs-ink-brown);}
+#studentRoot .manual-box h4{font-size:13px;color:var(--gs-ink-brown-2);margin-bottom:8px;font-weight:700;}
 #studentRoot .manual-row{display:flex;gap:8px;}
-#studentRoot .txt-inp{flex:1;padding:12px;border:2px solid var(--bdr);border-radius:10px;font-size:16px;font-family:inherit;text-transform:uppercase;}
-#studentRoot .txt-inp:focus{border-color:var(--sky);outline:none;}
+
+#studentRoot .txt-inp{flex:1;padding:12px;border:2px solid rgba(140,105,55,.4);border-radius:10px;font-size:16px;font-family:'Nanum Gothic',sans-serif;text-transform:uppercase;background:#fffaf0;color:var(--gs-ink-brown);}
+#studentRoot .txt-inp:focus{border-color:var(--gs-gold);outline:none;}
+
 #studentRoot .q-badges{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
 #studentRoot .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;}
-#studentRoot .b-id{background:var(--navy);color:#fff;}
-#studentRoot .b-grade{background:var(--sky-p);color:var(--navy-g);}
-#studentRoot .b-unit{background:#F0F3F7;color:var(--tx2);}
-#studentRoot .grade-warn{background:#FFF3D6;border:1px solid #F5DFA0;border-radius:10px;padding:10px 12px;font-size:13px;color:#7C5A00;font-weight:700;margin-bottom:12px;}
-#studentRoot .qimg{margin:10px 0;text-align:center;background:#FAFBFC;border:1px solid #E5EAEF;border-radius:10px;padding:10px;}
+#studentRoot .b-id{background:#2e2050;color:var(--gs-gold-lt);}
+#studentRoot .b-grade{background:rgba(140,105,55,.18);color:var(--gs-ink-brown);}
+#studentRoot .b-unit{background:rgba(140,105,55,.1);color:var(--gs-ink-brown-2);}
+#studentRoot .grade-warn{background:rgba(140,105,55,.12);border:1px solid rgba(140,105,55,.3);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--gs-ink-brown-2);font-weight:700;margin-bottom:12px;}
+
+#studentRoot .qimg{margin:10px 0;text-align:center;background:rgba(255,255,255,.35);border:1px solid rgba(140,105,55,.25);border-radius:10px;padding:10px;}
 #studentRoot .qimg svg{width:100%;height:auto;max-width:320px;display:block;margin:0 auto;}
 #studentRoot .qimg.wide svg{max-width:600px;}
 #studentRoot .qimg table.plain{width:100%;max-width:230px;margin:0 auto 10px;border-collapse:collapse;}
-#studentRoot .qimg table.plain th,#studentRoot .qimg table.plain td{border:1px solid #ccc;padding:5px 8px;font-size:12px;text-align:center;}
-#studentRoot .qimg table.plain th{background:#F0F3F7;}
+#studentRoot .qimg table.plain th,#studentRoot .qimg table.plain td{border:1px solid rgba(140,105,55,.4);padding:5px 8px;font-size:12px;text-align:center;}
+#studentRoot .qimg table.plain th{background:rgba(140,105,55,.12);}
 #studentRoot .pictogram{font-size:30px;text-align:center;letter-spacing:8px;}
-#studentRoot .dotgrid{font-size:19px;text-align:center;letter-spacing:2px;color:var(--navy-g);line-height:1.6;font-weight:700;}
-#studentRoot .q-text{font-size:16px;font-weight:600;margin:12px 0;line-height:1.6;}
+#studentRoot .dotgrid{font-size:19px;text-align:center;letter-spacing:2px;color:var(--gs-ink-brown-2);line-height:1.6;font-weight:700;}
+#studentRoot .q-text{font-size:16px;font-weight:600;margin:12px 0;line-height:1.6;color:var(--gs-ink-brown);}
 #studentRoot .ans-row{display:flex;gap:8px;margin-top:10px;}
 #studentRoot .ans-row .txt-inp{text-transform:none;}
+
 #studentRoot .fb-box{margin-top:14px;padding:14px;border-radius:12px;font-size:15px;font-weight:800;text-align:center;}
-#studentRoot .fb-ok{background:#E8F9EF;color:var(--green);border:1px solid #B9EDCB;}
-#studentRoot .fb-bad{background:#FDEEEF;color:var(--red);border:1px solid #F5C6CB;}
-#studentRoot .fb-lock{background:#FFF3D6;color:#7C5A00;border:1px solid #F5DFA0;}
-#studentRoot .fb-review{background:#EAF2FB;color:var(--navy-g);border:1px solid #C7DCF2;}
+#studentRoot .fb-box img{width:28px;vertical-align:-6px;margin-right:6px;}
+#studentRoot .fb-ok{background-image:linear-gradient(170deg,var(--gs-success-1),var(--gs-success-2));color:#e6ffe9;border:1px solid var(--gs-success-border);}
+#studentRoot .fb-bad{background:rgba(90,20,30,.55);color:#ffd8dd;border:1px solid rgba(255,140,150,.4);}
+#studentRoot .fb-lock{background:rgba(46,32,80,.7);color:var(--gs-gold-lt);border:1px solid rgba(255,205,130,.35);}
+#studentRoot .fb-review{background:rgba(46,32,80,.5);color:var(--gs-lilac-lt);border:1px solid rgba(201,185,232,.35);}
+
 #studentRoot .center-icon{font-size:42px;text-align:center;margin-bottom:6px;}
-#studentRoot .cooldown-txt{font-size:12px;color:var(--tx3);text-align:center;margin-top:8px;}
+#studentRoot .cooldown-txt{font-size:12px;color:var(--gs-lilac);text-align:center;margin-top:8px;}
+
 #studentRoot .scr-hd{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px;}
-#studentRoot .scr-hd .lbl{font-size:12px;font-weight:800;color:var(--tx2);}
-#studentRoot .scr-hd button{border:1px solid var(--bdr);background:#fff;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--tx);cursor:pointer;font-family:inherit;}
-#studentRoot .canvas-wrap{position:relative;height:220px;border:1px solid var(--bdr);border-radius:10px;background:#fcfcfd;touch-action:none;overflow:hidden;}
+#studentRoot .scr-hd .lbl{font-size:12px;font-weight:800;color:var(--gs-ink-brown-2);}
+#studentRoot .scr-hd button{border:1px solid rgba(140,105,55,.4);background:rgba(255,255,255,.4);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--gs-ink-brown);cursor:pointer;font-family:'Nanum Gothic',sans-serif;}
+#studentRoot .canvas-wrap{position:relative;height:220px;border:1px solid rgba(140,105,55,.4);border-radius:10px;background:#15111f;touch-action:none;overflow:hidden;}
 #studentRoot .canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
-#studentRoot .finale{text-align:center;padding:40px 16px;}
+
+#studentRoot .finale{text-align:center;padding:40px 16px;position:relative;z-index:1;}
 #studentRoot .finale .em{font-size:64px;}
-#studentRoot .finale h2{font-size:22px;margin:10px 0;color:var(--navy);}
-#studentRoot .finale p{font-size:14px;color:var(--tx2);line-height:1.7;}
-#studentRoot .top-back{font-size:13px;color:var(--sky);font-weight:800;cursor:pointer;margin-bottom:10px;display:inline-block;}
-#studentRoot .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
-#studentRoot .modal-box{background:#fff;border-radius:16px;padding:26px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.25);}
+#studentRoot .finale h2{font-size:22px;margin:10px 0;color:var(--gs-gold-lt);}
+#studentRoot .finale p{font-size:14px;color:var(--gs-lilac);line-height:1.7;}
+#studentRoot .top-back{font-size:13px;color:var(--gs-gold);font-weight:800;cursor:pointer;margin-bottom:10px;display:inline-block;position:relative;z-index:1;}
+
+#studentRoot .modal-ov{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+#studentRoot .modal-box{background-image:linear-gradient(170deg,var(--gs-parchment-1),var(--gs-parchment-2));border-radius:16px;padding:26px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.6);color:var(--gs-ink-brown);margin:auto;}
+#studentRoot .modal-icon{width:56px;margin:0 auto 4px;display:block;}
 #studentRoot .modal-box .em{font-size:56px;}
-#studentRoot .modal-box h3{font-size:19px;margin:8px 0;color:var(--navy);}
-#studentRoot .modal-box p{font-size:13px;color:var(--tx2);line-height:1.6;margin-bottom:16px;}
-#studentRoot .grid8{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;}
-#studentRoot .cell8{aspect-ratio:1/1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;background:#E7ECF2;color:var(--tx3);}
-#studentRoot .cell8.solved{background:var(--green);color:#fff;}
-#studentRoot .cell8.next{background:var(--sky);color:#fff;box-shadow:0 0 0 3px var(--sky-p);}
-#studentRoot .admin-acc{margin-top:24px;text-align:center;}
-#studentRoot .admin-acc summary{font-size:11px;color:var(--tx3);cursor:pointer;list-style:none;}
+#studentRoot .modal-box h3{font-size:19px;margin:8px 0;color:var(--gs-ink-brown);}
+#studentRoot .modal-box p{font-size:13px;color:var(--gs-ink-brown-2);line-height:1.6;margin-bottom:16px;text-align:left;}
+
+/* 조/교실 상세 공용 레이아웃 */
+#studentRoot .room-detail-layout{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;justify-content:center;position:relative;z-index:1;}
+#studentRoot .room-detail-layout>.parchment-frame{margin:0;}
+#studentRoot .side-panel{flex:0 0 200px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;}
+#studentRoot .team-icon-img{width:90px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.7));}
+#studentRoot .key-row{display:flex;justify-content:center;align-items:flex-end;gap:12px;flex-wrap:wrap;}
+#studentRoot .key-icon{width:40px;filter:drop-shadow(0 0 14px rgba(255,205,120,.95));}
+#studentRoot .key-icon.off{filter:grayscale(1) brightness(.5);opacity:.55;}
+#studentRoot .note-box{background:rgba(46,32,80,.86);border:1px solid rgba(255,205,130,.35);border-radius:8px;padding:12px 16px;color:var(--gs-gold-lt);font-weight:700;font-size:14px;line-height:1.6;box-shadow:0 6px 18px rgba(0,0,0,.55);}
+#studentRoot .note-box .sub{font-weight:400;color:var(--gs-lilac);font-size:12.5px;}
+
+#studentRoot .parchment-frame{flex:1 1 380px;max-width:520px;margin:0 auto;background-image:linear-gradient(180deg,rgba(20,14,32,.15),rgba(20,14,32,.15)),url('assets/background_problem_frame.png');background-size:100% 100%,100% 100%;background-repeat:no-repeat,no-repeat;padding:9% 10% 10%;box-sizing:border-box;}
+#studentRoot .parchment-frame-inner{display:flex;flex-direction:column;align-items:center;text-align:center;}
+#studentRoot .room-icon-lg{width:96px;filter:drop-shadow(0 5px 10px rgba(0,0,0,.4));}
+#studentRoot .room-title{font-family:'Nanum Myeongjo',serif;font-size:28px;font-weight:800;color:var(--gs-ink-brown);margin-top:6px;}
+#studentRoot .room-subprog{font-size:15px;color:var(--gs-ink-brown-2);margin-top:2px;}
+
+#studentRoot .mission-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 10px;margin-top:18px;width:100%;}
+#studentRoot .mission-icon{position:relative;text-align:center;}
+#studentRoot .mission-icon img{width:100%;max-width:90px;}
+#studentRoot .mission-icon.locked img{filter:grayscale(.85) brightness(.62);}
+#studentRoot .mission-icon.next img{filter:drop-shadow(0 0 16px rgba(255,205,120,.95));}
+#studentRoot .mission-icon.solved img{filter:drop-shadow(0 4px 8px rgba(0,0,0,.35));}
+#studentRoot .mission-icon .badge-img{position:absolute;width:30px;right:-2px;top:-6px;}
+#studentRoot .mission-icon.solved .badge-img{right:4px;bottom:-2px;top:auto;width:26px;}
+
+#studentRoot .celebrate-ov{position:fixed;inset:0;z-index:250;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px;background-image:linear-gradient(180deg,rgba(16,10,32,.45),rgba(16,10,32,.85)),url('assets/background_mission_select.png');background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;}
+#studentRoot .celebrate-inner{display:flex;gap:32px;flex-wrap:wrap;align-items:center;justify-content:center;max-width:900px;margin:auto;}
+#studentRoot .curse-title{font-family:'Nanum Myeongjo',serif;font-size:44px;font-weight:800;line-height:1.25;color:#fff4dc;text-shadow:0 0 24px rgba(255,190,90,.65),0 4px 12px rgba(0,0,0,.9);text-align:center;}
+#studentRoot .chest-img{display:block;width:110px;margin:0 auto -14px;position:relative;z-index:1;filter:drop-shadow(0 0 22px rgba(255,205,120,.7));}
+#studentRoot .result-card{background-image:linear-gradient(168deg,var(--gs-parchment-1),var(--gs-parchment-2));border-radius:8px;box-shadow:0 14px 36px rgba(0,0,0,.65);border:2px solid rgba(140,105,55,.5);padding:32px 28px 26px;max-width:420px;color:var(--gs-ink-brown);text-align:center;}
+#studentRoot .result-stats{display:flex;justify-content:center;gap:22px;margin-top:22px;flex-wrap:wrap;}
+#studentRoot .result-stat{text-align:center;}
+#studentRoot .result-stat .label{font-size:13px;color:var(--gs-ink-brown-2);}
+#studentRoot .result-stat .value{font-size:20px;font-weight:800;color:var(--gs-ink-brown);margin-top:4px;}
+
+#studentRoot .admin-acc{margin-top:24px;text-align:center;position:relative;z-index:1;}
+#studentRoot .admin-acc summary{font-size:11px;color:var(--gs-lilac);cursor:pointer;list-style:none;}
 #studentRoot .admin-acc summary::-webkit-details-marker{display:none;}
 #studentRoot .admin-acc-body{margin-top:10px;display:flex;gap:8px;justify-content:center;}
 #studentRoot .confetti-cv{position:fixed;inset:0;pointer-events:none;z-index:300;}
-#studentRoot .celebrate-ov{position:fixed;inset:0;background:rgba(27,46,74,.94);z-index:250;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;text-align:center;padding:20px;}
-#studentRoot .celebrate-ov h1{font-size:30px;margin:14px 0;background:linear-gradient(90deg,#FFD700,#FF6B9D,#4DA3E8,#2DAA6E);-webkit-background-clip:text;background-clip:text;color:transparent;animation:hue 3s linear infinite;}
-@keyframes hue{0%{filter:hue-rotate(0)}100%{filter:hue-rotate(360deg)}}
-#studentRoot .bounce{animation:bounce 1s ease-in-out infinite;}
-@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+@media (max-width:700px){
+  #studentRoot .room-grid-3col{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #studentRoot .stage{flex-direction:column;align-items:stretch;}
+  #studentRoot .side-panel{flex:none;}
+}
 
 /* ===== 관리자 화면 (#adminRoot 스코프) ===== */
 #adminRoot .hd{background:linear-gradient(135deg,var(--navy),var(--navy-g));color:#fff;padding:16px 20px;}
@@ -426,6 +549,13 @@ R6:[
 };
 
 const ALL_ROOMS=ROOMS.concat([FINAL_ROOM]);
+const ROOM_ICON={R1:"classroom_library.png",R2:"classroom_computer.png",R3:"classroom_english.png",R4:"classroom_vr.png",R5:"classroom_auditorium.png"};
+const FINAL_ROOM_ICON="classroom_gym.png";
+function teamIconSrc(n){const i=((Number(n)-1)%5+5)%5+1;return "assets/team_"+i+".png";}
+function setScene(name){
+  const root=document.getElementById("studentRoot");
+  if(root)root.setAttribute("data-scene",name||"");
+}
 function escapeHtml(s){return (s||"").toString().replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
 const dbRoot=db.ref("escape_data");
 
@@ -872,9 +1002,13 @@ function computeTeamGrades(){
 }
 function renderTeamPick(){
   view="teamPick";
+  setScene("gate");
   setHeader();
+  const decor='<img class="decor-img gs-drift" src="assets/common_bat.png" alt="" style="left:4%;top:9%;width:70px;">'
+    +'<img class="decor-img gs-drift" src="assets/common_ghost.png" alt="" style="left:7%;bottom:14%;width:84px;filter:drop-shadow(0 0 16px rgba(255,220,150,.35));">';
+  const hero='<div class="hero-block"><div class="wood-sign-wrap"><img class="wood-sign-img" src="assets/prop_wooden_sign.png" alt=""><span class="wood-sign-label">방탈출 놀이</span></div><div class="hero-title">유령 학교의<br>저주</div><div class="hero-sub">조 편성</div></div>';
   if(teamCount<1){
-    app.innerHTML='<div class="card" style="text-align:center;"><div class="center-icon">🗂️</div><h2 style="font-size:16px;margin-bottom:8px;">아직 조가 편성되지 않았어요</h2><p style="font-size:12px;color:var(--tx2);">선생님이 명단을 올려서 조를 편성하면 여기에 표시돼요.</p></div>'+adminAccordionHtml();
+    app.innerHTML=decor+hero+'<div class="card" style="text-align:center;"><div class="center-icon">🗂️</div><h2 style="font-size:16px;margin-bottom:8px;">아직 조가 편성되지 않았어요</h2><p style="font-size:12px;">선생님이 명단을 올려서 조를 편성하면 여기에 표시돼요.</p></div>'+adminAccordionHtml();
     return;
   }
   const byTeam={};
@@ -885,7 +1019,8 @@ function renderTeamPick(){
     if(!byTeam[n])return;
     byTeam[n].push(s);
   });
-  let h='<div class="card"><h2 style="font-size:16px;margin-bottom:6px;">조를 선택하세요</h2><p style="font-size:12px;color:var(--tx2);">우리 조를 찾아서 눌러주세요.</p></div>';
+  let h=decor+hero;
+  h+='<div class="card"><h2 style="font-size:16px;margin-bottom:6px;">조를 선택하세요</h2><p style="font-size:12px;">우리 조를 찾아서 눌러주세요.</p></div>';
   h+='<div style="display:flex;flex-direction:column;gap:12px;">';
   for(let n=1;n<=teamCount;n++){
     const members=byTeam[n].slice().sort((a,b)=>{
@@ -893,7 +1028,7 @@ function renderTeamPick(){
       return (a.name||"").localeCompare(b.name||"","ko");
     });
     const badge=members.length?members.map(s=>escapeHtml(s.name)+"("+s.grade+")").join(" · "):"명단 없음";
-    h+='<button class="team-btn" onclick="pickTeam('+n+')" style="width:100%;padding:16px;text-align:left;display:flex;flex-direction:column;gap:6px;border:2px solid var(--bdr);background:#fff;border-radius:10px;cursor:pointer;transition:.12s;font-family:inherit;"><span style="font-size:16px;font-weight:800;color:var(--navy);">'+n+'조</span><span style="font-size:13px;font-weight:500;color:var(--tx);word-break:break-word;line-height:1.5;">'+badge+'</span></button>';
+    h+='<button class="team-btn" onclick="pickTeam('+n+')"><img class="team-btn-icon" src="'+teamIconSrc(n)+'" alt="'+n+'조"><span class="team-btn-body"><span class="team-btn-name">'+n+'조</span><span class="team-btn-members">'+badge+'</span></span></button>';
   }
   h+='</div>';
   h+=adminAccordionHtml();
@@ -927,25 +1062,24 @@ function switchTeam(){
 function showRequiredRoomsChangedNotification(newRooms){
   // 관리자가 방 개수를 변경했을 때 학생들에게 알림
   if(appMode!=="student"||view!=="home")return;
-  alert(
-    "📢 선생님이 방탈출 설정을 변경하셨습니다!\n\n"+
-    "🎯 " + newRooms + "개의 방 + 강당 미션을 클리어해야 성공합니다.\n\n"+
-    "지금부터 목표를 달성하기 위해 도전해보세요! 💪"
+  showInfoModal(
+    "assets/common_scroll.png",
+    "선생님이 설정을 변경하셨어요!",
+    "🎯 "+newRooms+"개의 방 + 강당 미션을 클리어해야 성공합니다.<br><br>지금부터 목표를 달성하기 위해 도전해보세요! 💪"
   );
 }
 function showInitialGuidePopup(){
   // 처음 시작할 때 안내 팝업
   if(guidePumpShown||appMode!=="student")return;
   guidePumpShown=true;
-  const msg=
-    "🎉 방탈출 놀이를 시작합니다!\n\n"+
-    "📝 미션:\n"+
-    "• " + requiredRooms + "개의 방 문제를 풀기\n"+
-    "• 강당에서 단체줄넘기 20개 성공\n\n"+
-    "✅ 위 미션을 모두 완료하면 성공!\n\n"+
-    "⏰ 순서 상관없이 원하는 방부터 시작하세요!\n\n"+
+  const body=
+    "📝 미션:<br>"+
+    "• "+requiredRooms+"개의 방 문제를 풀기<br>"+
+    "• 강당에서 단체줄넘기 20개 성공<br><br>"+
+    "✅ 위 미션을 모두 완료하면 성공!<br><br>"+
+    "⏰ 순서 상관없이 원하는 방부터 시작하세요!<br><br>"+
     "화이팅! 🚀";
-  alert(msg);
+  showInfoModal("assets/prop_wooden_sign.png","방탈출 놀이를 시작합니다!",body);
 }
 function findQ(qid){
   const rid=qid.slice(0,2);
@@ -1025,11 +1159,20 @@ function saveSubmission(qid,val,isCorrect){
   try{work=canvas?canvas.toDataURL("image/png"):"";}catch(e){}
   dbRef.child("submissions").child(qid).set({value:(val||"").toString(),work,autoCorrect:!!isCorrect,ts:Date.now()});
 }
-function showWrongNoticeModal(n){
+function showInfoModal(iconSrc,title,bodyHtml){
   const ov=document.createElement("div");
   ov.className="modal-ov";
-  ov.innerHTML='<div class="modal-box"><div class="em">🔁</div><h3>다시 풀어주세요!</h3><p>'+escapeHtml(n.roomName||"")+'의 <b>'+escapeHtml(n.qid||"")+'</b> 문제를 선생님이 다시 확인하셨어요.<br>'+escapeHtml(n.msg||"틀렸어요, 다시 풀어볼까요?")+'</p><button class="btn btn-lg btn-primary" onclick="this.closest(\'.modal-ov\').remove()">확인</button></div>';
+  ov.innerHTML='<div class="modal-box">'+(iconSrc?'<img class="modal-icon" src="'+iconSrc+'" alt="">':"")
+    +'<h3 style="text-align:center;">'+title+'</h3><p>'+bodyHtml+'</p>'
+    +'<button class="btn btn-lg btn-primary" onclick="this.closest(\'.modal-ov\').remove()">확인</button></div>';
   document.getElementById("studentRoot").appendChild(ov);
+}
+function showWrongNoticeModal(n){
+  showInfoModal(
+    "assets/common_scroll.png",
+    "다시 풀어주세요!",
+    escapeHtml(n.roomName||"")+'의 <b>'+escapeHtml(n.qid||"")+'</b> 문제를 선생님이 다시 확인하셨어요.<br>'+escapeHtml(n.msg||"틀렸어요, 다시 풀어볼까요?")
+  );
 }
 function openFinalMission(){
   if(!finalMissionAvailable())return;
@@ -1037,17 +1180,34 @@ function openFinalMission(){
   else{openScan();}
 }
 function showCelebration(){
+  const touchedRoomIds=ROOMS.filter(r=>roomProgress(r.id)>0).map(r=>r.id);
+  const solvedCount=touchedRoomIds.reduce((sum,rid)=>sum+roomProgress(rid),0)+(solvedIds["R6Q1"]?1:0);
+  const totalQ=touchedRoomIds.reduce((sum,rid)=>sum+QUESTIONS[rid].length,0)+QUESTIONS.R6.length;
+  const roomsDone=ROOMS.filter(r=>roomProgress(r.id)===8).length;
   const ov=document.createElement("div");
   ov.className="celebrate-ov";
+  let keys='<div class="key-row">';
+  for(let i=0;i<requiredRooms;i++)keys+='<img class="key-icon" src="assets/common_key.png" alt="">';
+  keys+='</div>';
   ov.innerHTML='<canvas class="confetti-cv" id="confettiCv"></canvas>'
-    +'<div class="bounce" style="font-size:70px">🏆🔑🎉</div>'
-    +'<h1>미션 클리어!</h1>'
-    +'<p style="font-size:15px;line-height:1.8;max-width:320px;">황금열쇠 5조각을 모두 모으고<br>협동 미션까지 성공했어요!<br>우리 조 최고예요! 🎊</p>'
-    +'<button class="btn btn-lg btn-primary" style="margin-top:22px;max-width:260px" onclick="this.closest(\'.celebrate-ov\').remove()">확인</button>';
+    +'<div class="celebrate-inner">'
+    +'<div class="side-panel"><img class="team-icon-img" src="'+teamIconSrc(Number(team))+'" alt="'+team+'조"><div class="curse-title">저주가<br>풀렸다</div>'+keys+'</div>'
+    +'<div><img class="chest-img" src="assets/prop_treasure_chest.png" alt="">'
+    +'<div class="result-card"><div style="font-family:\'Nanum Myeongjo\',serif;font-size:22px;font-weight:800;color:var(--gs-ink-brown);text-align:center;">열쇠 '+requiredRooms+'개를 모두 되찾았다</div>'
+    +'<div class="result-stats">'
+    +'<div class="result-stat"><div class="label">푼 문제</div><div class="value">'+solvedCount+' / '+totalQ+'</div></div>'
+    +'<div class="result-stat"><div class="label">연 교실</div><div class="value">'+roomsDone+' 개</div></div>'
+    +'<div class="result-stat"><div class="label">단체줄넘기</div><div class="value">성공</div></div>'
+    +'</div>'
+    +'<div style="margin-top:20px;font-size:14.5px;line-height:1.9;color:var(--gs-ink-brown-2);">유령들이 손을 흔들며 사라졌습니다.<br>학교는 다시 조용해졌어요.</div>'
+    +'<button class="btn btn-lg btn-primary" style="margin-top:22px" onclick="this.closest(\'.celebrate-ov\').remove()">확인</button>'
+    +'</div></div>'
+    +'</div>';
   document.getElementById("studentRoot").appendChild(ov);
   runConfetti();
 }
 function runConfetti(){
+  if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
   const cv=document.getElementById("confettiCv");
   if(!cv)return;
   cv.width=window.innerWidth;cv.height=window.innerHeight;
@@ -1086,9 +1246,11 @@ function openRoomDetail(rid){
 }
 function openScan(){
   view="scan";
+  setScene("guide");
   const helpRoomId=currentHelpRoomId();
-  const helpBtn=helpRoomId?'<button class="btn btn-lg btn-sub" style="margin-top:14px;color:#b45309" onclick="requestHelp(\''+helpRoomId+"');goHome();\">🙋 선생님께 도움 요청하기</button>":"";
+  const helpBtn=helpRoomId?'<button class="btn btn-lg btn-sub" style="margin-top:14px" onclick="requestHelp(\''+helpRoomId+"');goHome();\">🙋 선생님께 도움 요청하기</button>":"";
   app.innerHTML='<div class="scan-wrap"><div class="top-back" onclick="goHome()">← 홈으로</div>'
+    +'<img src="assets/button_qr_scan.png" alt="QR 스캔하기" style="width:220px;margin:6px auto 10px;display:block;">'
     +'<div class="cam-box"><video id="vid" playsinline muted autoplay></video><div class="cam-frame"></div></div>'
     +'<div class="cam-msg" id="camMsg">카메라를 QR 코드에 비춰주세요</div>'
     +'<div class="manual-box"><h4>카메라가 안 되면 카드에 적힌 6자리 코드를 직접 입력하세요</h4>'
@@ -1171,9 +1333,10 @@ function handleScan(qid){
 }
 function showRoomLockedScreen(rid,activeRoom){
   view="question";activeQid=null;
+  setScene("guide");
   const room=ROOMS.find(r=>r.id===rid);
   let h='<div class="top-back" onclick="goHome()">← 홈으로</div><div class="card">';
-  h+='<div class="center-icon">🔒</div><div class="fb-box fb-lock">'+room.emoji+' '+room.name+'은(는) 아직 시작할 수 없어요!<br>지금은 <b>'+activeRoom.emoji+' '+activeRoom.name+'</b>을(를) 먼저 끝내야 해요.</div>';
+  h+='<div class="fb-box fb-lock"><img src="assets/status_locked.png" alt="">'+room.name+'은(는) 아직 시작할 수 없어요!<br>지금은 <b>'+activeRoom.name+'</b>을(를) 먼저 끝내야 해요.</div>';
   h+='<button class="btn btn-lg btn-primary" style="margin-top:10px" onclick="requestHelp(\''+activeRoom.id+'\');goHome();">🙋 선생님께 도움 요청하기</button>';
   h+='</div><button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
   app.innerHTML=h;
@@ -1194,6 +1357,7 @@ function helpStudentForGrade(grade){
 }
 function showGradeGate(qid,mode){
   view="question";activeQid=qid;
+  setScene("guide");
   const q=findQ(qid);
   const rid=qid.slice(0,2);
   const room=ROOMS.find(r=>r.id===rid);
@@ -1211,7 +1375,7 @@ function showGradeGate(qid,mode){
   h+='<div class="center-icon">🙋</div>';
   h+='<div class="grade-warn" style="font-size:15px;text-align:center;line-height:1.6;">'+warnMsg+'</div>';
   if(helpStudent){
-    h+='<div class="grade-warn" style="margin-top:8px;background:#EAF2FB;border-color:#C7DCF2;color:var(--navy-g);font-size:14px;text-align:center;line-height:1.6;">🤝 '+escapeHtml(helpStudent.name)+' 친구는 같은 학년이나 한 학년 위 친구가 도와줘도 좋아요. 함께 풀어보세요!</div>';
+    h+='<div class="grade-warn" style="margin-top:8px;text-align:center;line-height:1.6;background:rgba(120,90,200,.14);border-color:rgba(160,120,220,.4);">🤝 '+escapeHtml(helpStudent.name)+' 친구는 같은 학년이나 한 학년 위 친구가 도와줘도 좋아요. 함께 풀어보세요!</div>';
   }
   h+='<button class="btn btn-lg btn-primary" style="margin-top:14px" onclick="showQuestionScreen(\''+qid+'\',\''+mode+'\')">확인</button>';
   h+="</div>";
@@ -1219,6 +1383,7 @@ function showGradeGate(qid,mode){
 }
 function showQuestionScreen(qid,mode,requiredQid){
   view="question";activeQid=qid;
+  setScene("study");
   const q=findQ(qid);
   const rid=qid.slice(0,2);
   const room=rid==="R6"?FINAL_ROOM:ROOMS.find(r=>r.id===rid);
@@ -1228,20 +1393,20 @@ function showQuestionScreen(qid,mode,requiredQid){
   let expectedShown="";
   if(q.type==="random"){
     const pick=randomPicks[qid];
-    bodyText=q.text+'<br><span style="font-size:20px;font-weight:900;color:var(--navy-g)">"'+(pick?pick.ko:"")+'"</span>';
+    bodyText=q.text+'<br><span style="font-size:20px;font-weight:900;color:var(--gs-ink-brown)">"'+(pick?pick.ko:"")+'"</span>';
     expectedShown=pick?pick.en:"";
   }else{
     expectedShown=q.answer;
   }
 
   let h='<div class="top-back" onclick="goHome()">← 홈으로</div>';
-  h+='<div class="card">';
+  h+='<div class="parchment-frame"><div class="parchment-frame-inner" style="align-items:stretch;text-align:left;">';
   h+='<div class="q-badges"><span class="badge b-id">'+qid+"</span>"+(q.grade?"<span class=\"badge b-grade\">"+q.grade+"학년</span>":"")+"<span class=\"badge b-unit\">"+room.emoji+" "+room.name+" · "+q.unit+"</span></div>";
 
   if(mode==="locked"){
-    h+='<div class="center-icon">🔒</div><div class="fb-box fb-lock">아직 열 수 없어요!<br>이 방은 순서대로 풀어야 해요.<br>지금 풀어야 할 문제: <b>'+requiredQid+"</b></div>";
+    h+='<div class="fb-box fb-lock"><img src="assets/status_locked.png" alt="">아직 열 수 없어요!<br>이 방은 순서대로 풀어야 해요.<br>지금 풀어야 할 문제: <b>'+requiredQid+"</b></div>";
     h+='<button class="btn btn-lg btn-primary" style="margin-top:10px" onclick="requestHelp(\''+rid+"');goHome();\">🙋 선생님께 도움 요청하기</button>";
-    h+="</div>";
+    h+="</div></div>";
     h+='<button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
     app.innerHTML=h;
     return;
@@ -1251,8 +1416,8 @@ function showQuestionScreen(qid,mode,requiredQid){
   h+='<div class="q-text">'+bodyText+"</div>";
 
   if(mode==="review"){
-    h+='<div class="fb-box fb-review">✅ 이미 푼 문제예요<br>정답: <b>'+expectedShown+"</b></div>";
-    h+="</div>";
+    h+='<div class="fb-box fb-review"><img src="assets/status_success.png" alt="">이미 푼 문제예요<br>정답: <b>'+expectedShown+"</b></div>";
+    h+="</div></div>";
     h+='<button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
     app.innerHTML=h;
     return;
@@ -1260,13 +1425,13 @@ function showQuestionScreen(qid,mode,requiredQid){
 
   // active
   if(MATH_ROOMS.includes(rid)){
-    h+='<div style="background:#FDEEEF;border:1px solid #F5C6CB;border-radius:10px;padding:10px 12px;font-size:13px;color:var(--red);font-weight:800;text-align:center;line-height:1.6;">⚠️ 풀이과정을 꼭 남겨주세요!<br>안 적으면 오답 처리되어 다시 풀어야 해요.</div>';
+    h+='<div class="fb-box fb-bad" style="margin-top:0;margin-bottom:14px;">⚠️ 풀이과정을 꼭 남겨주세요!<br>안 적으면 오답 처리되어 다시 풀어야 해요.</div>';
   }
   h+='<div class="ans-row"><input class="txt-inp" id="ansInp" placeholder="정답 입력" autocomplete="off" autocapitalize="off"><button class="btn btn-green" id="submitBtn" style="padding:0 18px" onclick="submitAnswer()">제출</button></div>';
   h+='<div id="fbArea"></div>';
   h+='<div class="scr-hd"><span class="lbl">✏️ 풀이 공간</span><button onclick="clearScratch()">🗑 지우기</button></div>';
   h+='<div class="canvas-wrap" id="canvasWrap"><canvas id="scratchCanvas"></canvas></div>';
-  h+="</div>";
+  h+="</div></div>";
   app.innerHTML=h;
   renderCooldown();
   initCanvas();
@@ -1281,7 +1446,7 @@ function initCanvas(){
   canvas.width=rect.width||wrap.offsetWidth||300;
   canvas.height=rect.height||wrap.offsetHeight||220;
   canvasCtx=canvas.getContext("2d");
-  canvasCtx.lineWidth=2.5;canvasCtx.lineCap="round";canvasCtx.lineJoin="round";canvasCtx.strokeStyle="#1E2D3D";
+  canvasCtx.lineWidth=2.5;canvasCtx.lineCap="round";canvasCtx.lineJoin="round";canvasCtx.strokeStyle="#f4ecd8";
   scratchHasDrawing=false;
   function posFromClient(clientX,clientY){
     const r=canvas.getBoundingClientRect();
@@ -1363,10 +1528,10 @@ function submitAnswer(){
     const rid=qid.slice(0,2);
     if(rid==="R6"){
       pendingCelebration=true;
-      fb.innerHTML='<div class="fb-box fb-ok">🎉 협동 미션 성공!</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="goHome()">홈으로</button>';
+      fb.innerHTML='<div class="fb-box fb-ok"><img src="assets/status_success.png" alt="">협동 미션 성공!</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="goHome()">홈으로</button>';
     }else{
       const roomDone=roomProgress(rid)===8;
-      fb.innerHTML='<div class="fb-box fb-ok">🎉 정답입니다!<br>'+(roomDone?"이 방을 모두 클리어했어요! 황금열쇠 조각을 얻었습니다 🔑":"방 안 어딘가에 숨겨진 다음 QR 코드를 찾아보세요!")+'</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="openScan()">📷 다음 QR 스캔하기</button><button class="btn btn-lg btn-sub" style="margin-top:8px" onclick="goHome()">홈으로</button>';
+      fb.innerHTML='<div class="fb-box fb-ok"><img src="assets/status_success.png" alt="">정답입니다!<br>'+(roomDone?"이 방을 모두 클리어했어요! 황금열쇠 조각을 얻었습니다 🔑":"방 안 어딘가에 숨겨진 다음 QR 코드를 찾아보세요!")+'</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="openScan()">📷 다음 QR 스캔하기</button><button class="btn btn-lg btn-sub" style="margin-top:8px" onclick="goHome()">홈으로</button>';
     }
     if(inp)inp.disabled=true;
     const sb=document.getElementById("submitBtn");if(sb)sb.disabled=true;
@@ -1376,9 +1541,9 @@ function submitAnswer(){
     cooldown[qid]={until:Date.now()+wait*1000,attempts};
     saveCloud();
     if(answerMatches&&noWorkShown){
-      fb.innerHTML='<div class="fb-box fb-bad">❌ 정답이지만 풀이과정이 없어서 오답 처리했어요!<br>풀이과정을 꼭 남기고 다시 풀어주세요.</div>';
+      fb.innerHTML='<div class="fb-box fb-bad"><img src="assets/status_failure.png" alt="">정답이지만 풀이과정이 없어서 오답 처리했어요!<br>풀이과정을 꼭 남기고 다시 풀어주세요.</div>';
     }else{
-      fb.innerHTML='<div class="fb-box fb-bad">❌ 정답이 아니에요. 다시 시도해보세요!</div>';
+      fb.innerHTML='<div class="fb-box fb-bad"><img src="assets/status_failure.png" alt="">정답이 아니에요. 다시 시도해보세요!</div>';
     }
     if(inp){inp.value="";}
     renderCooldown();
@@ -1386,21 +1551,29 @@ function submitAnswer(){
 }
 function renderHome(){
   view="home";
+  setScene("village");
   setHeader();
   const keys=totalKeys();
-  const finalAvail=finalMissionAvailable();
-  let h="";
+  let h='<img class="decor-img gs-flicker" src="assets/prop_lantern.png" alt="" style="left:2%;bottom:6%;width:64px;filter:drop-shadow(0 0 22px rgba(255,180,80,.6));">'
+    +'<img class="decor-img" src="assets/common_spider_web.png" alt="" style="right:0;top:0;width:110px;opacity:.5;">';
   if(keys>=requiredRooms&&!finalDone()){
     h+='<div class="finale"><div class="em">🤸✨</div><h2>협동 미션에 도전할 수 있어요!</h2><p>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
   }
   if(keys>=requiredRooms&&finalDone()){
     h+='<div class="finale"><div class="em">🎉🏆✨</div><h2>모든 미션 완료!</h2><p>정말 대단해요! 우리 조가 방탈출에 성공했어요.</p></div>';
   }
-  h+='<div class="keys-bar">';
-  for(let i=0;i<requiredRooms;i++)h+='<span class="k'+(i<keys?" on":"")+'">🔑</span>';
-  h+='<span class="keys-txt">'+keys+' / '+requiredRooms+' 조각 모음 · '+requiredRooms+'개 방 + 강당 미션 완료 시 성공</span></div>';
+  h+='<div class="stage"><div class="side-panel">';
+  h+='<div class="wood-sign-wrap"><img class="wood-sign-img" src="assets/prop_wooden_sign.png" alt=""><span class="wood-sign-label">방탈출 놀이</span></div>';
+  h+='<div class="hero-sub">저주받은<br>지도</div>';
+  h+='<div class="key-row">';
+  for(let i=0;i<requiredRooms;i++)h+='<img class="key-icon'+(i<keys?"":" off")+'" src="assets/common_key.png" alt="">';
+  h+='</div>';
+  h+='<div class="note-box">'+keys+' / '+requiredRooms+' 조각 모음<br><span class="sub">'+requiredRooms+'개 방 + 강당 미션 완료 시 성공</span></div>';
+  h+='<img class="scan-btn-img" src="assets/button_qr_scan.png" alt="QR 스캔하기" onclick="openScan()">';
+  h+='<div class="team-switch" onclick="switchTeam()">다른 조 선택</div>';
+  h+='</div>';
   const active=activeRoomId();
-  h+='<div class="room-grid">';
+  h+='<div class="room-grid-3col">';
   ROOMS.forEach(r=>{
     const p=roomProgress(r.id),done=p===8;
     const locked=!done&&active&&active!==r.id;
@@ -1414,38 +1587,35 @@ function renderHome(){
       if(unlocked[nextQid]){
         extra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="event.stopPropagation();openUnlocked(\''+nextQid+'\')">🔓 선생님이 열어주셨어요!</button>';
       }else if(helpRequest&&helpRequest.qid===nextQid){
-        extra='<div style="margin-top:6px;font-size:10px;color:#b45309;font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--tx3);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
+        extra='<div style="margin-top:6px;font-size:10px;color:var(--gs-gold);font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--gs-lilac);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
       }else{
-        extra='<div style="margin-top:6px;font-size:10px;color:var(--tx3);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();requestHelp(\''+r.id+'\')">🙋 QR을 못 찾겠어요</div>';
+        extra='<div style="margin-top:6px;font-size:10px;color:var(--gs-lilac);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();requestHelp(\''+r.id+'\')">🙋 QR을 못 찾겠어요</div>';
       }
     }
-    h+='<div class="room-card'+(done?" done":"")+(locked?" locked":"")+'" onclick="openRoomDetail(\''+r.id+'\')"><div class="room-emoji">'+r.emoji+"</div>"
+    h+='<div class="room-card'+(done?" done":"")+(locked?" locked":"")+'" onclick="openRoomDetail(\''+r.id+'\')"><div class="room-emoji"><img src="assets/'+ROOM_ICON[r.id]+'" alt=""></div>'
       +'<div class="room-name">'+r.name+"</div>"
       +'<div class="room-prog">'+(done?"✅ 완료!":p+" / 8")+"</div>"
       +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div>'+extra+'</div>';
   });
-  h+="</div>";
-  // 강당 미션을 일반 방처럼 항상 표시 (순서 제약 없음)
   const fd=finalDone();
   let finalExtra="";
   if(!fd){
     if(unlocked["R6Q1"]){
       finalExtra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="event.stopPropagation();openUnlocked(\'R6Q1\')">🔓 선생님이 열어주셨어요!</button>';
     }else if(helpRequest&&helpRequest.qid==="R6Q1"){
-      finalExtra='<div style="margin-top:6px;font-size:10px;color:#b45309;font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--tx3);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
+      finalExtra='<div style="margin-top:6px;font-size:10px;color:var(--gs-gold);font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--gs-lilac);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
     }
   }
-  h+='<div class="final-card'+(fd?" done":"")+'" onclick="openFinalMission()"><div class="room-emoji">🤸</div>'
+  h+='<div class="final-card'+(fd?" done":"")+'" onclick="openFinalMission()"><div class="room-emoji"><img src="assets/'+FINAL_ROOM_ICON+'" alt=""></div>'
     +'<div class="room-name">협동 미션 · 강당 단체줄넘기 20개</div>'
     +'<div class="room-prog">'+(fd?"✅ 완료!":"터치해서 도전하기")+'</div>'+finalExtra+'</div>';
-  h+='<div class="team-switch" onclick="switchTeam()">다른 조 선택</div>';
-  h+='<div style="height:90px"></div>';
-  h+='<div class="scan-fab"><button class="btn btn-lg btn-primary" onclick="openScan()">📷 QR 스캔하기</button></div>';
+  h+='</div></div>';
   app.innerHTML=h;
   if(pendingCelebration){pendingCelebration=false;showCelebration();}
 }
 function renderRoomDetail(rid){
   setHeader();
+  setScene("corridor");
   view="roomDetail";
   currentRoomDetailId=rid;
   const room=ROOMS.find(r=>r.id===rid);
@@ -1455,17 +1625,37 @@ function renderRoomDetail(rid){
   const active=activeRoomId();
   const locked=p===0&&active&&active!==rid;
   const isPopup=!!window.opener;
-  let h='<div class="top-back" onclick="'+(isPopup?"window.close()":"goHome()")+'">'+(isPopup?"✕ 창 닫기":"← 홈으로")+'</div>';
-  h+='<div class="card" style="text-align:center;"><div class="room-emoji" style="font-size:40px">'+room.emoji+'</div><h2 style="margin:6px 0">'+room.name+'</h2><div class="room-prog">'+p+' / 8 해결</div>';
-  if(locked)h+='<div class="grade-warn" style="margin-top:12px">🔒 지금은 <b>'+ROOMS.find(x=>x.id===active).name+'</b>을(를) 먼저 풀어야 이 방 QR이 열려요.</div>';
-  h+='<div class="grid8">';
+  const keys=totalKeys();
+  let h='<div class="room-detail-layout">';
+  h+='<div class="side-panel">';
+  h+='<img class="team-icon-img" src="'+teamIconSrc(Number(team))+'" alt="'+team+'조">';
+  h+='<div class="key-row">';
+  for(let i=0;i<requiredRooms;i++)h+='<img class="key-icon'+(i<keys?"":" off")+'" src="assets/common_key.png" alt="">';
+  h+='</div>';
+  h+='<div class="note-box">'+keys+' / '+requiredRooms+' 조각 모음<br><span class="sub">'+requiredRooms+'개 방 + 강당 미션 완료 시 성공</span></div>';
+  h+='<button class="btn btn-lg btn-sub" onclick="'+(isPopup?"window.close()":"goHome()")+'">'+(isPopup?"✕ 창 닫기":"← 이전")+'</button>';
+  h+='</div>';
+  h+='<div class="parchment-frame"><div class="parchment-frame-inner">';
+  h+='<img class="room-icon-lg" src="assets/'+(ROOM_ICON[rid]||FINAL_ROOM_ICON)+'" alt="">';
+  h+='<div class="room-title">'+room.name+'</div>';
+  h+='<div class="room-subprog">'+p+' / 8 해결</div>';
+  if(locked)h+='<div class="grade-warn" style="margin-top:10px">🔒 지금은 <b>'+ROOMS.find(x=>x.id===active).name+'</b>을(를) 먼저 풀어야 이 방 QR이 열려요.</div>';
+  h+='<div class="mission-grid">';
   roomQids.forEach((qid,i)=>{
     const solved=!!solvedIds[qid];
     const isNext=!solved&&i===p&&!locked;
-    h+='<div class="cell8'+(solved?" solved":"")+(isNext?" next":"")+'">'+(solved?"✅":(i+1))+'</div>';
+    const stateClass=solved?"solved":(isNext?"next gs-twinkle":"locked");
+    h+='<div class="mission-icon '+stateClass+'">';
+    h+='<img src="assets/mission_'+(i+1)+'.png" alt="'+(i+1)+'">';
+    if(solved)h+='<img class="badge-img" src="assets/status_success.png" alt="완료">';
+    else if(isNext)h+='<img class="badge-img" src="assets/decor_sparkles.png" alt="">';
+    else h+='<img class="badge-img" src="assets/status_locked.png" alt="잠김">';
+    h+='</div>';
   });
+  h+='</div>';
+  h+='<button class="btn btn-lg btn-primary" style="margin-top:16px" onclick="openScan()">📷 QR 스캔하러 가기</button>';
   h+='</div></div>';
-  h+='<button class="btn btn-lg btn-primary" onclick="openScan()" style="margin-top:6px">📷 QR 스캔하러 가기</button>';
+  h+='</div>';
   app.innerHTML=h;
 }
 function connectFirebase(){
