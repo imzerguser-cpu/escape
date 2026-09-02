@@ -1518,10 +1518,11 @@ function submitAnswer(){
 }
 function renderHome(){
   view="home";
+  setScene("village");
   setHeader();
   const keys=totalKeys();
-  const finalAvail=finalMissionAvailable();
-  let h="";
+  let h='<img class="decor-img gs-flicker" src="assets/prop_lantern.png" alt="" style="left:2%;bottom:6%;width:64px;filter:drop-shadow(0 0 22px rgba(255,180,80,.6));">'
+    +'<img class="decor-img" src="assets/common_spider_web.png" alt="" style="right:0;top:0;width:110px;opacity:.5;">';
   if(keys>=requiredRooms&&!finalDone()){
     h+='<div class="finale"><div class="em">🤸✨</div><h2>협동 미션에 도전할 수 있어요!</h2><p>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
   }
@@ -1546,12 +1547,12 @@ function renderHome(){
       if(unlocked[nextQid]){
         extra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="event.stopPropagation();openUnlocked(\''+nextQid+'\')">🔓 선생님이 열어주셨어요!</button>';
       }else if(helpRequest&&helpRequest.qid===nextQid){
-        extra='<div style="margin-top:6px;font-size:10px;color:#b45309;font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--tx3);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
+        extra='<div style="margin-top:6px;font-size:10px;color:var(--gs-gold);font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--gs-lilac);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
       }else{
-        extra='<div style="margin-top:6px;font-size:10px;color:var(--tx3);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();requestHelp(\''+r.id+'\')">🙋 QR을 못 찾겠어요</div>';
+        extra='<div style="margin-top:6px;font-size:10px;color:var(--gs-lilac);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();requestHelp(\''+r.id+'\')">🙋 QR을 못 찾겠어요</div>';
       }
     }
-    h+='<div class="room-card'+(done?" done":"")+(locked?" locked":"")+'" onclick="openRoomDetail(\''+r.id+'\')"><div class="room-emoji">'+r.emoji+"</div>"
+    h+='<div class="room-card'+(done?" done":"")+(locked?" locked":"")+'" onclick="openRoomDetail(\''+r.id+'\')"><div class="room-emoji"><img src="assets/'+ROOM_ICON[r.id]+'" alt=""></div>'
       +'<div class="room-name">'+r.name+"</div>"
       +'<div class="room-prog">'+(done?"✅ 완료!":p+" / 8")+"</div>"
       +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div>'+extra+'</div>';
@@ -1564,15 +1565,15 @@ function renderHome(){
     if(unlocked["R6Q1"]){
       finalExtra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="event.stopPropagation();openUnlocked(\'R6Q1\')">🔓 선생님이 열어주셨어요!</button>';
     }else if(helpRequest&&helpRequest.qid==="R6Q1"){
-      finalExtra='<div style="margin-top:6px;font-size:10px;color:#b45309;font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--tx3);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
+      finalExtra='<div style="margin-top:6px;font-size:10px;color:var(--gs-gold);font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--gs-lilac);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
     }
   }
-  h+='<div class="final-card'+(fd?" done":"")+'" onclick="openFinalMission()"><div class="room-emoji">🤸</div>'
+  h+='<div class="final-card'+(fd?" done":"")+'" onclick="openFinalMission()"><div class="room-emoji"><img src="assets/'+FINAL_ROOM_ICON+'" alt=""></div>'
     +'<div class="room-name">협동 미션 · 강당 단체줄넘기 20개</div>'
     +'<div class="room-prog">'+(fd?"✅ 완료!":"터치해서 도전하기")+'</div>'+finalExtra+'</div>';
   h+='<div class="team-switch" onclick="switchTeam()">다른 조 선택</div>';
   h+='<div style="height:90px"></div>';
-  h+='<div class="scan-fab"><button class="btn btn-lg btn-primary" onclick="openScan()">📷 QR 스캔하기</button></div>';
+  h+='<div class="scan-fab"><img src="assets/button_qr_scan.png" alt="QR 스캔하기" onclick="openScan()"></div>';
   app.innerHTML=h;
   if(pendingCelebration){pendingCelebration=false;showCelebration();}
 }
