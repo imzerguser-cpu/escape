@@ -1321,9 +1321,11 @@ function handleScan(qid){
 }
 function showRoomLockedScreen(rid,activeRoom){
   view="question";activeQid=null;
+  setScene("guide");
   const room=ROOMS.find(r=>r.id===rid);
   let h='<div class="top-back" onclick="goHome()">← 홈으로</div><div class="card">';
-  h+='<div class="center-icon">🔒</div><div class="fb-box fb-lock">'+room.emoji+' '+room.name+'은(는) 아직 시작할 수 없어요!<br>지금은 <b>'+activeRoom.emoji+' '+activeRoom.name+'</b>을(를) 먼저 끝내야 해요.</div>';
+  h+='<img class="modal-icon" src="assets/status_locked.png" alt="">';
+  h+='<div class="fb-box fb-lock">'+room.name+'은(는) 아직 시작할 수 없어요!<br>지금은 <b>'+activeRoom.name+'</b>을(를) 먼저 끝내야 해요.</div>';
   h+='<button class="btn btn-lg btn-primary" style="margin-top:10px" onclick="requestHelp(\''+activeRoom.id+'\');goHome();">🙋 선생님께 도움 요청하기</button>';
   h+='</div><button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
   app.innerHTML=h;
@@ -1344,6 +1346,7 @@ function helpStudentForGrade(grade){
 }
 function showGradeGate(qid,mode){
   view="question";activeQid=qid;
+  setScene("guide");
   const q=findQ(qid);
   const rid=qid.slice(0,2);
   const room=ROOMS.find(r=>r.id===rid);
@@ -1361,7 +1364,7 @@ function showGradeGate(qid,mode){
   h+='<div class="center-icon">🙋</div>';
   h+='<div class="grade-warn" style="font-size:15px;text-align:center;line-height:1.6;">'+warnMsg+'</div>';
   if(helpStudent){
-    h+='<div class="grade-warn" style="margin-top:8px;background:#EAF2FB;border-color:#C7DCF2;color:var(--navy-g);font-size:14px;text-align:center;line-height:1.6;">🤝 '+escapeHtml(helpStudent.name)+' 친구는 같은 학년이나 한 학년 위 친구가 도와줘도 좋아요. 함께 풀어보세요!</div>';
+    h+='<div class="grade-warn" style="margin-top:8px;text-align:center;line-height:1.6;">🤝 '+escapeHtml(helpStudent.name)+' 친구는 같은 학년이나 한 학년 위 친구가 도와줘도 좋아요. 함께 풀어보세요!</div>';
   }
   h+='<button class="btn btn-lg btn-primary" style="margin-top:14px" onclick="showQuestionScreen(\''+qid+'\',\''+mode+'\')">확인</button>';
   h+="</div>";
@@ -1369,6 +1372,7 @@ function showGradeGate(qid,mode){
 }
 function showQuestionScreen(qid,mode,requiredQid){
   view="question";activeQid=qid;
+  setScene("study");
   const q=findQ(qid);
   const rid=qid.slice(0,2);
   const room=rid==="R6"?FINAL_ROOM:ROOMS.find(r=>r.id===rid);
@@ -1378,20 +1382,20 @@ function showQuestionScreen(qid,mode,requiredQid){
   let expectedShown="";
   if(q.type==="random"){
     const pick=randomPicks[qid];
-    bodyText=q.text+'<br><span style="font-size:20px;font-weight:900;color:var(--navy-g)">"'+(pick?pick.ko:"")+'"</span>';
+    bodyText=q.text+'<br><span style="font-size:20px;font-weight:900;color:var(--gs-ink-brown)">"'+(pick?pick.ko:"")+'"</span>';
     expectedShown=pick?pick.en:"";
   }else{
     expectedShown=q.answer;
   }
 
   let h='<div class="top-back" onclick="goHome()">← 홈으로</div>';
-  h+='<div class="card">';
+  h+='<div class="parchment-frame"><div class="parchment-frame-inner" style="align-items:stretch;text-align:left;">';
   h+='<div class="q-badges"><span class="badge b-id">'+qid+"</span>"+(q.grade?"<span class=\"badge b-grade\">"+q.grade+"학년</span>":"")+"<span class=\"badge b-unit\">"+room.emoji+" "+room.name+" · "+q.unit+"</span></div>";
 
   if(mode==="locked"){
     h+='<div class="center-icon">🔒</div><div class="fb-box fb-lock">아직 열 수 없어요!<br>이 방은 순서대로 풀어야 해요.<br>지금 풀어야 할 문제: <b>'+requiredQid+"</b></div>";
     h+='<button class="btn btn-lg btn-primary" style="margin-top:10px" onclick="requestHelp(\''+rid+"');goHome();\">🙋 선생님께 도움 요청하기</button>";
-    h+="</div>";
+    h+="</div></div>";
     h+='<button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
     app.innerHTML=h;
     return;
@@ -1401,8 +1405,8 @@ function showQuestionScreen(qid,mode,requiredQid){
   h+='<div class="q-text">'+bodyText+"</div>";
 
   if(mode==="review"){
-    h+='<div class="fb-box fb-review">✅ 이미 푼 문제예요<br>정답: <b>'+expectedShown+"</b></div>";
-    h+="</div>";
+    h+='<div class="fb-box fb-review"><img src="assets/status_success.png" alt="">이미 푼 문제예요<br>정답: <b>'+expectedShown+"</b></div>";
+    h+="</div></div>";
     h+='<button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
     app.innerHTML=h;
     return;
@@ -1410,13 +1414,13 @@ function showQuestionScreen(qid,mode,requiredQid){
 
   // active
   if(MATH_ROOMS.includes(rid)){
-    h+='<div style="background:#FDEEEF;border:1px solid #F5C6CB;border-radius:10px;padding:10px 12px;font-size:13px;color:var(--red);font-weight:800;text-align:center;line-height:1.6;">⚠️ 풀이과정을 꼭 남겨주세요!<br>안 적으면 오답 처리되어 다시 풀어야 해요.</div>';
+    h+='<div class="fb-box fb-bad" style="margin-top:0;margin-bottom:14px;">⚠️ 풀이과정을 꼭 남겨주세요!<br>안 적으면 오답 처리되어 다시 풀어야 해요.</div>';
   }
   h+='<div class="ans-row"><input class="txt-inp" id="ansInp" placeholder="정답 입력" autocomplete="off" autocapitalize="off"><button class="btn btn-green" id="submitBtn" style="padding:0 18px" onclick="submitAnswer()">제출</button></div>';
   h+='<div id="fbArea"></div>';
   h+='<div class="scr-hd"><span class="lbl">✏️ 풀이 공간</span><button onclick="clearScratch()">🗑 지우기</button></div>';
   h+='<div class="canvas-wrap" id="canvasWrap"><canvas id="scratchCanvas"></canvas></div>';
-  h+="</div>";
+  h+="</div></div>";
   app.innerHTML=h;
   renderCooldown();
   initCanvas();
@@ -1431,7 +1435,7 @@ function initCanvas(){
   canvas.width=rect.width||wrap.offsetWidth||300;
   canvas.height=rect.height||wrap.offsetHeight||220;
   canvasCtx=canvas.getContext("2d");
-  canvasCtx.lineWidth=2.5;canvasCtx.lineCap="round";canvasCtx.lineJoin="round";canvasCtx.strokeStyle="#1E2D3D";
+  canvasCtx.lineWidth=2.5;canvasCtx.lineCap="round";canvasCtx.lineJoin="round";canvasCtx.strokeStyle="#f4ecd8";
   scratchHasDrawing=false;
   function posFromClient(clientX,clientY){
     const r=canvas.getBoundingClientRect();
@@ -1513,10 +1517,10 @@ function submitAnswer(){
     const rid=qid.slice(0,2);
     if(rid==="R6"){
       pendingCelebration=true;
-      fb.innerHTML='<div class="fb-box fb-ok">🎉 협동 미션 성공!</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="goHome()">홈으로</button>';
+      fb.innerHTML='<div class="fb-box fb-ok"><img src="assets/status_success.png" alt="">협동 미션 성공!</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="goHome()">홈으로</button>';
     }else{
       const roomDone=roomProgress(rid)===8;
-      fb.innerHTML='<div class="fb-box fb-ok">🎉 정답입니다!<br>'+(roomDone?"이 방을 모두 클리어했어요! 황금열쇠 조각을 얻었습니다 🔑":"방 안 어딘가에 숨겨진 다음 QR 코드를 찾아보세요!")+'</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="openScan()">📷 다음 QR 스캔하기</button><button class="btn btn-lg btn-sub" style="margin-top:8px" onclick="goHome()">홈으로</button>';
+      fb.innerHTML='<div class="fb-box fb-ok"><img src="assets/status_success.png" alt="">정답입니다!<br>'+(roomDone?"이 방을 모두 클리어했어요! 황금열쇠 조각을 얻었습니다 🔑":"방 안 어딘가에 숨겨진 다음 QR 코드를 찾아보세요!")+'</div><button class="btn btn-lg btn-primary" style="margin-top:12px" onclick="openScan()">📷 다음 QR 스캔하기</button><button class="btn btn-lg btn-sub" style="margin-top:8px" onclick="goHome()">홈으로</button>';
     }
     if(inp)inp.disabled=true;
     const sb=document.getElementById("submitBtn");if(sb)sb.disabled=true;
@@ -1526,9 +1530,9 @@ function submitAnswer(){
     cooldown[qid]={until:Date.now()+wait*1000,attempts};
     saveCloud();
     if(answerMatches&&noWorkShown){
-      fb.innerHTML='<div class="fb-box fb-bad">❌ 정답이지만 풀이과정이 없어서 오답 처리했어요!<br>풀이과정을 꼭 남기고 다시 풀어주세요.</div>';
+      fb.innerHTML='<div class="fb-box fb-bad"><img src="assets/status_failure.png" alt="">정답이지만 풀이과정이 없어서 오답 처리했어요!<br>풀이과정을 꼭 남기고 다시 풀어주세요.</div>';
     }else{
-      fb.innerHTML='<div class="fb-box fb-bad">❌ 정답이 아니에요. 다시 시도해보세요!</div>';
+      fb.innerHTML='<div class="fb-box fb-bad"><img src="assets/status_failure.png" alt="">정답이 아니에요. 다시 시도해보세요!</div>';
     }
     if(inp){inp.value="";}
     renderCooldown();
