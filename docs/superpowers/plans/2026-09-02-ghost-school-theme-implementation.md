@@ -1390,3 +1390,285 @@ git commit -m "fix: address layout issues found in full theme QA pass"
 ```
 
 If no fixes were needed, this task produces no commit — just report that verification passed.
+
+---
+
+## Post-launch follow-up (added after the final whole-branch review)
+
+The final review of Tasks 1-9 came back "ready to merge with fixes." Two follow-ups were approved by the human after seeing a side-by-side visual comparison of two home-screen options:
+
+- The home/classroom-select screen should be reworked from its single-column mobile stack into the same two-column "stage" layout (wood-sign/guidance panel on the left, a grid of room cards on the right) that the room-detail and celebration screens already use — the human chose this ("B안") over keeping the single column, after reviewing a rendered comparison.
+- A batch of Important/Minor findings from the final review should be fixed: the celebration overlay can get stuck un-dismissable on short viewports, decorative sprite images can render on top of card content instead of behind it, the question screen's locked state doesn't use the same lock icon as the room-locked screen, the question-answering parchment frame isn't horizontally centered on wide viewports, the peer-help notice on the grade-gate screen lost its distinguishing purple tint when the old inline color was removed, and the celebration screen's "푼 문제" ratio counts every question in the game (including rooms the team never opened) instead of just the rooms they actually attempted.
+
+### Task 10: Home screen — two-column stage layout
+
+**Files:**
+- Modify: `index.html` — `renderHome()` (current function, find via `grep -n "^function renderHome"`), and the `<style>` block (add new rules, remove now-dead `.keys-bar*`/`.scan-fab*`/`.room-grid` rules — home is their only consumer)
+
+**Interfaces:**
+- Consumes: `setScene`, `ROOM_ICON`, `FINAL_ROOM_ICON`, `teamIconSrc` is NOT needed here (no team icon on this screen in the new layout — the wood-sign title takes that visual slot instead, matching the design spec's screen 02), all the same globals `renderHome()` already used (`totalKeys`, `requiredRooms`, `activeRoomId`, `roomProgress`, `unlocked`, `helpRequest`, `finalDone`, `pendingCelebration`, `showCelebration`).
+- Produces: two new CSS classes other tasks don't need but must not collide with: `.stage`, `.room-grid-3col`, `.scan-btn-img`.
+
+- [ ] **Step 1: Add the new CSS and remove the classes only `renderHome()` used**
+
+In the `<style>` block, find:
+
+```css
+#studentRoot .keys-bar{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px;background:rgba(46,32,80,.7);border-radius:12px;margin-bottom:14px;border:1px solid rgba(255,205,130,.35);flex-wrap:wrap;}
+#studentRoot .keys-bar .k{font-size:26px;filter:grayscale(1) brightness(.5);opacity:.55;}
+#studentRoot .keys-bar .k.on{filter:none;opacity:1;text-shadow:0 0 10px rgba(255,205,120,.9);}
+#studentRoot .keys-txt{font-size:12px;color:var(--gs-gold-lt);font-weight:700;margin-left:8px;}
+
+#studentRoot .room-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+```
+
+Replace with:
+
+```css
+#studentRoot[data-scene="village"] .wrap{max-width:1040px;}
+#studentRoot .stage{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;}
+#studentRoot .room-grid-3col{flex:1 1 480px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-content:start;}
+#studentRoot .scan-btn-img{width:100%;max-width:200px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));cursor:pointer;display:block;margin:0 auto;}
+@media (max-width:700px){
+  #studentRoot .room-grid-3col{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #studentRoot .stage{flex-direction:column;align-items:stretch;}
+  #studentRoot .side-panel{flex:none;}
+}
+```
+
+Then find:
+
+```css
+#studentRoot .scan-fab{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:min(560px,calc(100% - 32px));z-index:40;}
+#studentRoot .scan-fab img{width:100%;display:block;filter:drop-shadow(0 8px 22px rgba(0,0,0,.6));cursor:pointer;}
+```
+
+Delete both lines (no replacement) — `.scan-fab` was only used by the old floating home-screen button, which this task replaces with an inline button inside the side panel.
+
+- [ ] **Step 2: Rewrite `renderHome()`**
+
+Find the current `renderHome()` function in full (from `function renderHome(){` to its closing `}`) and replace it with:
+
+```js
+function renderHome(){
+  view="home";
+  setScene("village");
+  setHeader();
+  const keys=totalKeys();
+  let h='<img class="decor-img gs-flicker" src="assets/prop_lantern.png" alt="" style="left:2%;bottom:6%;width:64px;filter:drop-shadow(0 0 22px rgba(255,180,80,.6));">'
+    +'<img class="decor-img" src="assets/common_spider_web.png" alt="" style="right:0;top:0;width:110px;opacity:.5;">';
+  if(keys>=requiredRooms&&!finalDone()){
+    h+='<div class="finale"><div class="em">🤸✨</div><h2>협동 미션에 도전할 수 있어요!</h2><p>강당에 모여 단체줄넘기 20개에 도전해보세요.</p></div>';
+  }
+  if(keys>=requiredRooms&&finalDone()){
+    h+='<div class="finale"><div class="em">🎉🏆✨</div><h2>모든 미션 완료!</h2><p>정말 대단해요! 우리 조가 방탈출에 성공했어요.</p></div>';
+  }
+  h+='<div class="stage"><div class="side-panel">';
+  h+='<div class="wood-sign-wrap"><img class="wood-sign-img" src="assets/prop_wooden_sign.png" alt=""><span class="wood-sign-label">방탈출 놀이</span></div>';
+  h+='<div class="hero-sub">저주받은<br>지도</div>';
+  h+='<div class="key-row">';
+  for(let i=0;i<requiredRooms;i++)h+='<img class="key-icon'+(i<keys?"":" off")+'" src="assets/common_key.png" alt="">';
+  h+='</div>';
+  h+='<div class="note-box">'+keys+' / '+requiredRooms+' 조각 모음<br><span class="sub">'+requiredRooms+'개 방 + 강당 미션 완료 시 성공</span></div>';
+  h+='<img class="scan-btn-img" src="assets/button_qr_scan.png" alt="QR 스캔하기" onclick="openScan()">';
+  h+='<div class="team-switch" onclick="switchTeam()">다른 조 선택</div>';
+  h+='</div>';
+  const active=activeRoomId();
+  h+='<div class="room-grid-3col">';
+  ROOMS.forEach(r=>{
+    const p=roomProgress(r.id),done=p===8;
+    const locked=!done&&active&&active!==r.id;
+    let extra="";
+    if(locked){
+      const activeRoom=ROOMS.find(x=>x.id===active);
+      extra='<div class="lock-msg">🔒 '+activeRoom.name+' 먼저 끝내세요</div>';
+    }else if(!done){
+      const roomQids=QUESTIONS[r.id].map(x=>x.qid);
+      const nextQid=roomQids[p];
+      if(unlocked[nextQid]){
+        extra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="event.stopPropagation();openUnlocked(\''+nextQid+'\')">🔓 선생님이 열어주셨어요!</button>';
+      }else if(helpRequest&&helpRequest.qid===nextQid){
+        extra='<div style="margin-top:6px;font-size:10px;color:var(--gs-gold);font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--gs-lilac);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
+      }else{
+        extra='<div style="margin-top:6px;font-size:10px;color:var(--gs-lilac);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();requestHelp(\''+r.id+'\')">🙋 QR을 못 찾겠어요</div>';
+      }
+    }
+    h+='<div class="room-card'+(done?" done":"")+(locked?" locked":"")+'" onclick="openRoomDetail(\''+r.id+'\')"><div class="room-emoji"><img src="assets/'+ROOM_ICON[r.id]+'" alt=""></div>'
+      +'<div class="room-name">'+r.name+"</div>"
+      +'<div class="room-prog">'+(done?"✅ 완료!":p+" / 8")+"</div>"
+      +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div>'+extra+'</div>';
+  });
+  const fd=finalDone();
+  let finalExtra="";
+  if(!fd){
+    if(unlocked["R6Q1"]){
+      finalExtra='<button class="btn btn-green" style="width:100%;margin-top:6px;padding:6px;font-size:10.5px;font-weight:800;" onclick="event.stopPropagation();openUnlocked(\'R6Q1\')">🔓 선생님이 열어주셨어요!</button>';
+    }else if(helpRequest&&helpRequest.qid==="R6Q1"){
+      finalExtra='<div style="margin-top:6px;font-size:10px;color:var(--gs-gold);font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--gs-lilac);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
+    }
+  }
+  h+='<div class="final-card'+(fd?" done":"")+'" onclick="openFinalMission()"><div class="room-emoji"><img src="assets/'+FINAL_ROOM_ICON+'" alt=""></div>'
+    +'<div class="room-name">협동 미션 · 강당 단체줄넘기 20개</div>'
+    +'<div class="room-prog">'+(fd?"✅ 완료!":"터치해서 도전하기")+'</div>'+finalExtra+'</div>';
+  h+='</div></div>';
+  app.innerHTML=h;
+  if(pendingCelebration){pendingCelebration=false;showCelebration();}
+}
+```
+
+Note what changed vs. the old function: the floating `.scan-fab` button and the bottom `<div style="height:90px"></div>` spacer are gone (the QR button now lives inline in the side panel, so no floating overlay or bottom-padding hack is needed); `team-switch` moved into the side panel; the emoji-chip `.keys-bar` was replaced with the `.key-row`/`.note-box` pattern already used by `renderRoomDetail()`/`showCelebration()` (same classes, no new CSS needed for those two); the 5 room cards plus the final card now sit in `.room-grid-3col` instead of the old 2-column `.room-grid`. All game-state logic (locked/help-request/unlocked-button branches, `pendingCelebration` trigger) is byte-identical to before — only the surrounding layout markup changed.
+
+- [ ] **Step 3: Verify**
+
+- `grep -n "keys-bar\|scan-fab" index.html` — should return nothing (both fully retired).
+- `grep -c "room-grid-3col" index.html` — should be ≥2 (one CSS rule, one usage in the new markup; likely 3 counting the media-query override).
+- Confirm `ROOM_ICON`, `FINAL_ROOM_ICON` are still only defined once each (this task doesn't touch their definitions, only consumes them).
+- `node --test scripts/roster-utils.test.js` — 26/26.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: rework home screen into the two-column stage layout"
+```
+
+---
+
+### Task 11: Fix batch from the final whole-branch review
+
+**Files:**
+- Modify: `index.html` — the `<style>` block (4 small rule edits) and `showCelebration()`, `showGradeGate()`, `showQuestionScreen()` (one small edit each)
+
+**Interfaces:** No new classes or helpers — every change here is either a CSS property tweak on an existing rule or a one-line JS/markup fix inside an existing function. No signatures change.
+
+- [ ] **Step 1: Fix the celebration overlay getting stuck un-dismissable on short viewports**
+
+Find:
+
+```css
+#studentRoot .celebrate-ov{position:fixed;inset:0;z-index:250;display:flex;align-items:center;justify-content:center;padding:24px;background-image:linear-gradient(180deg,rgba(16,10,32,.45),rgba(16,10,32,.85)),url('assets/background_mission_select.png');background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;}
+#studentRoot .celebrate-inner{display:flex;gap:32px;flex-wrap:wrap;align-items:center;justify-content:center;max-width:900px;}
+```
+
+Replace with:
+
+```css
+#studentRoot .celebrate-ov{position:fixed;inset:0;z-index:250;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px;background-image:linear-gradient(180deg,rgba(16,10,32,.45),rgba(16,10,32,.85)),url('assets/background_mission_select.png');background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;}
+#studentRoot .celebrate-inner{display:flex;gap:32px;flex-wrap:wrap;align-items:center;justify-content:center;max-width:900px;margin:auto;}
+```
+
+(`overflow-y:auto` lets a student scroll to reach the "확인" button when the two-column content is taller than the viewport; `margin:auto` on the inner block keeps it centered when it already fits.)
+
+Also find:
+
+```css
+#studentRoot .modal-ov{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+```
+
+Replace with:
+
+```css
+#studentRoot .modal-ov{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;}
+```
+
+(same cheap hardening for the smaller info modals, in case a very long message ever appears on a very short viewport)
+
+- [ ] **Step 2: Fix decorative sprite images painting above card content instead of behind it**
+
+Find:
+
+```css
+#studentRoot .decor-img{position:fixed;z-index:0;pointer-events:none;}
+```
+
+Replace with:
+
+```css
+#studentRoot .decor-img{position:fixed;z-index:-1;pointer-events:none;}
+```
+
+- [ ] **Step 3: Center the question-answering parchment frame on wide viewports**
+
+Find:
+
+```css
+#studentRoot .parchment-frame{flex:1 1 380px;max-width:520px;background-image:linear-gradient(180deg,rgba(20,14,32,.15),rgba(20,14,32,.15)),url('assets/background_problem_frame.png');background-size:100% 100%,100% 100%;background-repeat:no-repeat,no-repeat;padding:9% 10% 10%;box-sizing:border-box;}
+```
+
+Replace with:
+
+```css
+#studentRoot .parchment-frame{flex:1 1 380px;max-width:520px;margin:0 auto;background-image:linear-gradient(180deg,rgba(20,14,32,.15),rgba(20,14,32,.15)),url('assets/background_problem_frame.png');background-size:100% 100%,100% 100%;background-repeat:no-repeat,no-repeat;padding:9% 10% 10%;box-sizing:border-box;}
+```
+
+(as a flex item inside `.room-detail-layout` this is harmless; as a plain block child of `.wrap` in `showQuestionScreen()`, `margin:0 auto` is what actually centers it — that's the screen this fix targets.)
+
+- [ ] **Step 4: Make the question screen's locked state use the same lock icon as the room-locked screen**
+
+Find (inside `showQuestionScreen()`):
+
+```js
+  if(mode==="locked"){
+    h+='<div class="center-icon">🔒</div><div class="fb-box fb-lock">아직 열 수 없어요!<br>이 방은 순서대로 풀어야 해요.<br>지금 풀어야 할 문제: <b>'+requiredQid+"</b></div>";
+```
+
+Replace with:
+
+```js
+  if(mode==="locked"){
+    h+='<div class="fb-box fb-lock"><img src="assets/status_locked.png" alt="">아직 열 수 없어요!<br>이 방은 순서대로 풀어야 해요.<br>지금 풀어야 할 문제: <b>'+requiredQid+"</b></div>";
+```
+
+(drops the `.center-icon` 🔒 emoji in favor of the `status_locked.png` icon inside the `fb-box` itself, matching `showRoomLockedScreen()`'s pattern — `.fb-box img` is already styled from Task 1.)
+
+- [ ] **Step 5: Restore the peer-help notice's purple tint on the grade-gate screen**
+
+Find (inside `showGradeGate()`):
+
+```js
+  if(helpStudent){
+    h+='<div class="grade-warn" style="margin-top:8px;text-align:center;line-height:1.6;">🤝 '+escapeHtml(helpStudent.name)+' 친구는 같은 학년이나 한 학년 위 친구가 도와줘도 좋아요. 함께 풀어보세요!</div>';
+  }
+```
+
+Replace with:
+
+```js
+  if(helpStudent){
+    h+='<div class="grade-warn" style="margin-top:8px;text-align:center;line-height:1.6;background:rgba(120,90,200,.14);border-color:rgba(160,120,220,.4);">🤝 '+escapeHtml(helpStudent.name)+' 친구는 같은 학년이나 한 학년 위 친구가 도와줘도 좋아요. 함께 풀어보세요!</div>';
+  }
+```
+
+- [ ] **Step 6: Scope the celebration screen's "푼 문제" ratio to rooms the team actually attempted**
+
+Find (inside `showCelebration()`):
+
+```js
+  const solvedCount=Object.values(QUESTIONS).flat().filter(q=>solvedIds[q.qid]).length;
+  const totalQ=Object.values(QUESTIONS).flat().length;
+  const roomsDone=ROOMS.filter(r=>roomProgress(r.id)===8).length;
+```
+
+Replace with:
+
+```js
+  const touchedRoomIds=ROOMS.filter(r=>roomProgress(r.id)>0).map(r=>r.id);
+  const solvedCount=touchedRoomIds.reduce((sum,rid)=>sum+roomProgress(rid),0)+(solvedIds["R6Q1"]?1:0);
+  const totalQ=touchedRoomIds.reduce((sum,rid)=>sum+QUESTIONS[rid].length,0)+QUESTIONS.R6.length;
+  const roomsDone=ROOMS.filter(r=>roomProgress(r.id)===8).length;
+```
+
+(previously `totalQ` was always 41 — every question in every room, including the 2+ rooms a team with `requiredRooms=3` never had to open — which made a full, successful clear read as an incomplete-looking "25/41" on the victory screen. Scoping to only the rooms the team has any progress in keeps the ratio honest without changing what counts as "success.")
+
+- [ ] **Step 7: Verify**
+
+- `grep -n "center-icon.*🔒" index.html` — should return nothing (the one locked-state emoji this task removes).
+- `node --test scripts/roster-utils.test.js` — 26/26.
+- These are CSS/string-literal-only changes with no control-flow changes — confirm by re-reading each diff hunk that only the string/property values changed, not any `if`/`return`/function signature.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add index.html
+git commit -m "fix: address celebration overflow, decor stacking, locked-icon, centering, and stat-scope issues from final review"
+```
