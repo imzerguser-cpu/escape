@@ -1579,6 +1579,7 @@ function renderHome(){
 }
 function renderRoomDetail(rid){
   setHeader();
+  setScene("corridor");
   view="roomDetail";
   currentRoomDetailId=rid;
   const room=ROOMS.find(r=>r.id===rid);
@@ -1588,17 +1589,37 @@ function renderRoomDetail(rid){
   const active=activeRoomId();
   const locked=p===0&&active&&active!==rid;
   const isPopup=!!window.opener;
-  let h='<div class="top-back" onclick="'+(isPopup?"window.close()":"goHome()")+'">'+(isPopup?"✕ 창 닫기":"← 홈으로")+'</div>';
-  h+='<div class="card" style="text-align:center;"><div class="room-emoji" style="font-size:40px">'+room.emoji+'</div><h2 style="margin:6px 0">'+room.name+'</h2><div class="room-prog">'+p+' / 8 해결</div>';
-  if(locked)h+='<div class="grade-warn" style="margin-top:12px">🔒 지금은 <b>'+ROOMS.find(x=>x.id===active).name+'</b>을(를) 먼저 풀어야 이 방 QR이 열려요.</div>';
-  h+='<div class="grid8">';
+  const keys=totalKeys();
+  let h='<div class="room-detail-layout">';
+  h+='<div class="side-panel">';
+  h+='<img class="team-icon-img" src="'+teamIconSrc(Number(team))+'" alt="'+team+'조">';
+  h+='<div class="key-row">';
+  for(let i=0;i<requiredRooms;i++)h+='<img class="key-icon'+(i<keys?"":" off")+'" src="assets/common_key.png" alt="">';
+  h+='</div>';
+  h+='<div class="note-box">'+keys+' / '+requiredRooms+' 조각 모음<br><span class="sub">'+requiredRooms+'개 방 + 강당 미션 완료 시 성공</span></div>';
+  h+='<button class="btn btn-lg btn-sub" onclick="'+(isPopup?"window.close()":"goHome()")+'">'+(isPopup?"✕ 창 닫기":"← 이전")+'</button>';
+  h+='</div>';
+  h+='<div class="parchment-frame"><div class="parchment-frame-inner">';
+  h+='<img class="room-icon-lg" src="assets/'+(ROOM_ICON[rid]||FINAL_ROOM_ICON)+'" alt="">';
+  h+='<div class="room-title">'+room.name+'</div>';
+  h+='<div class="room-subprog">'+p+' / 8 해결</div>';
+  if(locked)h+='<div class="grade-warn" style="margin-top:10px">🔒 지금은 <b>'+ROOMS.find(x=>x.id===active).name+'</b>을(를) 먼저 풀어야 이 방 QR이 열려요.</div>';
+  h+='<div class="mission-grid">';
   roomQids.forEach((qid,i)=>{
     const solved=!!solvedIds[qid];
     const isNext=!solved&&i===p&&!locked;
-    h+='<div class="cell8'+(solved?" solved":"")+(isNext?" next":"")+'">'+(solved?"✅":(i+1))+'</div>';
+    const stateClass=solved?"solved":(isNext?"next gs-twinkle":"locked");
+    h+='<div class="mission-icon '+stateClass+'">';
+    h+='<img src="assets/mission_'+(i+1)+'.png" alt="'+(i+1)+'">';
+    if(solved)h+='<img class="badge-img" src="assets/status_success.png" alt="완료">';
+    else if(isNext)h+='<img class="badge-img" src="assets/decor_sparkles.png" alt="">';
+    else h+='<img class="badge-img" src="assets/status_locked.png" alt="잠김">';
+    h+='</div>';
   });
+  h+='</div>';
+  h+='<button class="btn btn-lg btn-primary" style="margin-top:16px" onclick="openScan()">📷 QR 스캔하러 가기</button>';
   h+='</div></div>';
-  h+='<button class="btn btn-lg btn-primary" onclick="openScan()" style="margin-top:6px">📷 QR 스캔하러 가기</button>';
+  h+='</div>';
   app.innerHTML=h;
 }
 function connectFirebase(){
