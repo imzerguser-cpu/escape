@@ -125,6 +125,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .scan-btn-img{width:100%;max-width:200px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));cursor:pointer;display:block;margin:0 auto;}
 #studentRoot .room-card{background-image:linear-gradient(170deg,var(--gs-stone-1),var(--gs-stone-2));border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.55);padding:16px 12px;text-align:center;border:2px solid var(--gs-stone-border);cursor:pointer;color:var(--gs-gold-lt);}
 #studentRoot .room-card.done{border-color:var(--gs-success-border);background-image:linear-gradient(170deg,var(--gs-success-1),var(--gs-success-2));color:#e6ffe9;}
+/* 교실 카드 배경을 사진으로 쓸 때: 하단만 어둡게 그라디언트를 얹어 진행도 글자가 늘 잘 보이게 함 */
+#studentRoot .room-card.has-photo{background-image:linear-gradient(180deg,rgba(15,10,25,.05) 0%,rgba(15,10,25,.15) 55%,rgba(8,6,15,.92) 100%),var(--room-photo);background-size:cover;background-position:center;border-color:rgba(255,205,130,.55);}
+#studentRoot .room-card.has-photo.done{background-image:linear-gradient(180deg,rgba(20,60,30,.1) 0%,rgba(15,50,25,.3) 55%,rgba(8,45,18,.88) 100%),var(--room-photo);}
+#studentRoot .final-card.has-photo{background-image:linear-gradient(180deg,rgba(15,10,25,.05) 0%,rgba(15,10,25,.15) 55%,rgba(8,6,15,.92) 100%),var(--room-photo);background-size:cover;background-position:center;}
+#studentRoot .final-card.has-photo.done{background-image:linear-gradient(180deg,rgba(20,60,30,.1) 0%,rgba(15,50,25,.3) 55%,rgba(8,45,18,.88) 100%),var(--room-photo);}
+#studentRoot[data-scene="village"] .room-card.has-photo,#studentRoot[data-scene="village"] .final-card.has-photo{justify-content:flex-end;}
 #studentRoot .room-emoji{font-size:32px;}
 /* 홈 화면(village)만: 가로 폭이 넓을 때 오른쪽 교실 카드가 화면 아래 여백 없이 꽉 차도록 세로로도 늘림 */
 #studentRoot[data-scene="village"]{display:flex;flex-direction:column;}
@@ -567,6 +573,9 @@ R6:[
 const ALL_ROOMS=ROOMS.concat([FINAL_ROOM]);
 const ROOM_ICON={R1:"classroom_library.png",R2:"classroom_computer.png",R3:"classroom_english.png",R4:"classroom_vr.png",R5:"classroom_auditorium.png"};
 const FINAL_ROOM_ICON="classroom_gym.png";
+/* 홈(교실 선택) 화면 카드 배경 전용 사진 — 미션 선택 화면의 작은 아이콘(ROOM_ICON)과는 별개 */
+const ROOM_PHOTO={R1:"classroom_library_photo.png",R2:"classroom_computer_photo.png",R3:"classroom_english_photo.png",R4:"classroom_vr_photo.png",R5:"classroom_auditorium_photo.png"};
+const FINAL_ROOM_PHOTO="classroom_gym_photo.png";
 function teamIconSrc(n){const i=((Number(n)-1)%5+5)%5+1;return "assets/team_"+i+".png";}
 function setScene(name){
   const root=document.getElementById("studentRoot");
@@ -1595,8 +1604,7 @@ function renderHome(){
         extra='<div style="margin-top:6px;font-size:10px;color:var(--gs-lilac);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();requestHelp(\''+r.id+'\')">🙋 QR을 못 찾겠어요</div>';
       }
     }
-    h+='<div class="room-card'+(done?" done":"")+'" onclick="openRoomDetail(\''+r.id+'\')"><div class="room-emoji"><img src="assets/'+ROOM_ICON[r.id]+'" alt=""></div>'
-      +'<div class="room-name">'+r.name+"</div>"
+    h+='<div class="room-card has-photo'+(done?" done":"")+'" style="--room-photo:url(\'assets/'+ROOM_PHOTO[r.id]+'\')" onclick="openRoomDetail(\''+r.id+'\')">'
       +'<div class="room-prog">'+(done?"✅ 완료!":p+" / 8")+"</div>"
       +'<div class="room-bar"><div class="room-bar-f" style="width:'+(p/8*100)+'%"></div></div>'+extra+'</div>';
   });
@@ -1609,7 +1617,7 @@ function renderHome(){
       finalExtra='<div style="margin-top:6px;font-size:10px;color:var(--gs-gold);font-weight:800;">🙋 요청함 · 기다려주세요<br><span style="text-decoration:underline;cursor:pointer;color:var(--gs-lilac);font-weight:600;" onclick="event.stopPropagation();cancelHelp()">요청 취소</span></div>';
     }
   }
-  h+='<div class="final-card'+(fd?" done":"")+'" onclick="openFinalMission()"><div class="room-emoji"><img src="assets/'+FINAL_ROOM_ICON+'" alt=""></div>'
+  h+='<div class="final-card has-photo'+(fd?" done":"")+'" style="--room-photo:url(\'assets/'+FINAL_ROOM_PHOTO+'\')" onclick="openFinalMission()">'
     +'<div class="room-name">협동 미션 · 강당 단체줄넘기 '+jumpRopeCount()+'개</div>'
     +'<div class="room-prog">'+(fd?"✅ 완료!":"터치해서 도전하기")+'</div>'+finalExtra+'</div>';
   h+='</div></div>';
