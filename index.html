@@ -114,14 +114,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .team-btn-members{font-size:12.5px;color:var(--gs-ink-brown-2);line-height:1.4;word-break:keep-all;}
 
 #studentRoot[data-scene="village"] .wrap{max-width:1040px;}
+#studentRoot[data-scene="corridor"] .wrap{max-width:1040px;}
 #studentRoot .stage{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;}
 #studentRoot .room-grid-3col{flex:1 1 480px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-content:start;}
 #studentRoot .scan-btn-img{width:100%;max-width:200px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));cursor:pointer;display:block;margin:0 auto;}
-@media (max-width:700px){
-  #studentRoot .room-grid-3col{grid-template-columns:repeat(2,minmax(0,1fr));}
-  #studentRoot .stage{flex-direction:column;align-items:stretch;}
-  #studentRoot .side-panel{flex:none;}
-}
 #studentRoot .room-card{background-image:linear-gradient(170deg,var(--gs-stone-1),var(--gs-stone-2));border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.55);padding:16px 12px;text-align:center;border:2px solid var(--gs-stone-border);cursor:pointer;color:var(--gs-gold-lt);}
 #studentRoot .room-card.done{border-color:var(--gs-success-border);background-image:linear-gradient(170deg,var(--gs-success-1),var(--gs-success-2));color:#e6ffe9;}
 #studentRoot .room-card.locked{opacity:.55;}
@@ -134,7 +130,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .room-bar{height:6px;background:rgba(0,0,0,.35);border-radius:3px;margin-top:6px;overflow:hidden;}
 #studentRoot .room-bar-f{height:100%;background:var(--gs-gold);border-radius:3px;transition:width .3s;}
 #studentRoot .room-card.done .room-bar-f{background:var(--gs-green);}
-#studentRoot .final-card{background-image:linear-gradient(170deg,var(--gs-stone-1),var(--gs-stone-2));border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.55);padding:16px 12px;text-align:center;border:2px solid var(--gs-gold);margin-top:12px;cursor:pointer;color:var(--gs-gold-lt);}
+#studentRoot .final-card{background-image:linear-gradient(170deg,var(--gs-stone-1),var(--gs-stone-2));border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.55);padding:16px 12px;text-align:center;border:2px solid var(--gs-gold);cursor:pointer;color:var(--gs-gold-lt);}
 #studentRoot .final-card.done{border-color:var(--gs-success-border);background-image:linear-gradient(170deg,var(--gs-success-1),var(--gs-success-2));color:#e6ffe9;}
 
 #studentRoot .team-switch{font-size:11px;color:var(--gs-lilac);text-align:center;margin-top:18px;text-decoration:underline;cursor:pointer;}
@@ -192,15 +188,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .finale p{font-size:14px;color:var(--gs-lilac);line-height:1.7;}
 #studentRoot .top-back{font-size:13px;color:var(--gs-gold);font-weight:800;cursor:pointer;margin-bottom:10px;display:inline-block;position:relative;z-index:1;}
 
-#studentRoot .modal-ov{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;}
-#studentRoot .modal-box{background-image:linear-gradient(170deg,var(--gs-parchment-1),var(--gs-parchment-2));border-radius:16px;padding:26px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.6);color:var(--gs-ink-brown);}
+#studentRoot .modal-ov{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+#studentRoot .modal-box{background-image:linear-gradient(170deg,var(--gs-parchment-1),var(--gs-parchment-2));border-radius:16px;padding:26px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.6);color:var(--gs-ink-brown);margin:auto;}
 #studentRoot .modal-icon{width:56px;margin:0 auto 4px;display:block;}
 #studentRoot .modal-box .em{font-size:56px;}
 #studentRoot .modal-box h3{font-size:19px;margin:8px 0;color:var(--gs-ink-brown);}
 #studentRoot .modal-box p{font-size:13px;color:var(--gs-ink-brown-2);line-height:1.6;margin-bottom:16px;text-align:left;}
 
 /* 조/교실 상세 공용 레이아웃 */
-#studentRoot .room-detail-layout{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;justify-content:center;position:relative;z-index:1;}
+#studentRoot .room-detail-layout{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;justify-content:center;position:relative;z-index:1;}
+#studentRoot .room-detail-layout>.parchment-frame{margin:0;}
 #studentRoot .side-panel{flex:0 0 200px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;}
 #studentRoot .team-icon-img{width:90px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.7));}
 #studentRoot .key-row{display:flex;justify-content:center;align-items:flex-end;gap:12px;flex-wrap:wrap;}
@@ -239,6 +236,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .admin-acc summary::-webkit-details-marker{display:none;}
 #studentRoot .admin-acc-body{margin-top:10px;display:flex;gap:8px;justify-content:center;}
 #studentRoot .confetti-cv{position:fixed;inset:0;pointer-events:none;z-index:300;}
+@media (max-width:700px){
+  #studentRoot .room-grid-3col{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #studentRoot .stage{flex-direction:column;align-items:stretch;}
+  #studentRoot .side-panel{flex:none;}
+}
 
 /* ===== 관리자 화면 (#adminRoot 스코프) ===== */
 #adminRoot .hd{background:linear-gradient(135deg,var(--navy),var(--navy-g));color:#fff;padding:16px 20px;}
@@ -1334,8 +1336,7 @@ function showRoomLockedScreen(rid,activeRoom){
   setScene("guide");
   const room=ROOMS.find(r=>r.id===rid);
   let h='<div class="top-back" onclick="goHome()">← 홈으로</div><div class="card">';
-  h+='<img class="modal-icon" src="assets/status_locked.png" alt="">';
-  h+='<div class="fb-box fb-lock">'+room.name+'은(는) 아직 시작할 수 없어요!<br>지금은 <b>'+activeRoom.name+'</b>을(를) 먼저 끝내야 해요.</div>';
+  h+='<div class="fb-box fb-lock"><img src="assets/status_locked.png" alt="">'+room.name+'은(는) 아직 시작할 수 없어요!<br>지금은 <b>'+activeRoom.name+'</b>을(를) 먼저 끝내야 해요.</div>';
   h+='<button class="btn btn-lg btn-primary" style="margin-top:10px" onclick="requestHelp(\''+activeRoom.id+'\');goHome();">🙋 선생님께 도움 요청하기</button>';
   h+='</div><button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
   app.innerHTML=h;
