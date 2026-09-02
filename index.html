@@ -198,6 +198,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .canvas-wrap{position:relative;height:220px;border:1px solid rgba(140,105,55,.4);border-radius:10px;background:#15111f;touch-action:none;overflow:hidden;}
 #studentRoot .canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
 
+/* 문제 풀이 화면: 가로/세로에 따라 문제-풀이공간 배치를 바꿈 (가로에서 풀이 공간이 너무 짧아 터치가 부정확해지는 문제 대응) */
+#studentRoot[data-scene="study"] .wrap{max-width:1040px;}
+#studentRoot .q-split{display:flex;flex-direction:column;gap:16px;width:100%;}
+#studentRoot .q-pane{min-width:0;}
+#studentRoot .q-canvas-pane{min-width:0;display:flex;flex-direction:column;}
+#studentRoot .q-canvas-pane .canvas-wrap{flex:1;min-height:220px;}
+@media (orientation:landscape){
+  #studentRoot[data-scene="study"] .parchment-frame{max-width:960px;}
+  #studentRoot .q-split{flex-direction:row;align-items:stretch;}
+  #studentRoot .q-pane{flex:1 1 0;}
+  #studentRoot .q-canvas-pane{flex:1 1 0;}
+}
+
 #studentRoot .finale{text-align:center;padding:40px 16px;position:relative;z-index:1;}
 #studentRoot .finale .em{font-size:64px;}
 #studentRoot .finale h2{font-size:22px;margin:10px 0;color:var(--gs-gold-lt);}
@@ -1440,14 +1453,18 @@ function showQuestionScreen(qid,mode,requiredQid){
     return;
   }
 
-  // active
+  // active — 가로모드: 문제(왼쪽)/풀이공간(오른쪽) 좌우분할, 세로모드: 위/아래로 쌓임 (CSS .q-split이 담당)
+  h+='<div class="q-split"><div class="q-pane">';
   if(MATH_ROOMS.includes(rid)){
     h+='<div class="fb-box fb-bad" style="margin-top:0;margin-bottom:14px;">⚠️ 풀이과정을 꼭 남겨주세요!<br>안 적으면 오답 처리되어 다시 풀어야 해요.</div>';
   }
   h+='<div class="ans-row"><input class="txt-inp" id="ansInp" placeholder="정답 입력" autocomplete="off" autocapitalize="off"><button class="btn btn-green" id="submitBtn" style="padding:0 18px" onclick="submitAnswer()">제출</button></div>';
   h+='<div id="fbArea"></div>';
+  h+='</div>';
+  h+='<div class="q-canvas-pane">';
   h+='<div class="scr-hd"><span class="lbl">✏️ 풀이 공간</span><button onclick="clearScratch()">🗑 지우기</button></div>';
   h+='<div class="canvas-wrap" id="canvasWrap"><canvas id="scratchCanvas"></canvas></div>';
+  h+='</div></div>';
   h+="</div></div>";
   app.innerHTML=h;
   renderCooldown();
@@ -1455,7 +1472,7 @@ function showQuestionScreen(qid,mode,requiredQid){
   const inp=document.getElementById("ansInp");
   if(inp){inp.addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer();});inp.focus();}
 }
-function initCanvas(){
+function resizeCanvasBuffer(){
   const wrap=document.getElementById("canvasWrap");
   const canvas=document.getElementById("scratchCanvas");
   if(!wrap||!canvas)return;
@@ -1465,6 +1482,11 @@ function initCanvas(){
   canvasCtx=canvas.getContext("2d");
   canvasCtx.lineWidth=2.5;canvasCtx.lineCap="round";canvasCtx.lineJoin="round";canvasCtx.strokeStyle="#f4ecd8";
   scratchHasDrawing=false;
+}
+function initCanvas(){
+  resizeCanvasBuffer();
+  const canvas=document.getElementById("scratchCanvas");
+  if(!canvas)return;
   function posFromClient(clientX,clientY){
     const r=canvas.getBoundingClientRect();
     return {x:clientX-r.left,y:clientY-r.top};
@@ -1803,6 +1825,12 @@ function renderQrPage(){
     });
   });
 }
+
+/* 화면 회전/크기 변화 시 풀이 캔버스를 다시 초기화 — 그리던 중 방향을 바꾸면
+   캔버스 픽셀 크기와 실제 표시 크기가 어긋나 터치 좌표가 안 맞는 문제를 막는다 */
+window.addEventListener("resize",()=>{
+  if(view==="question"&&document.getElementById("canvasWrap"))resizeCanvasBuffer();
+});
 
 /* ===================== 시작 ===================== */
 connectQuestionOverrides();
