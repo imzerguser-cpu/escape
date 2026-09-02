@@ -73,7 +73,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;background-attachment:fixed,fixed;
 }
 
-#studentRoot .decor-img{position:fixed;z-index:0;pointer-events:none;}
+#studentRoot .decor-img{position:fixed;z-index:-1;pointer-events:none;}
 
 #studentRoot .hd{background:linear-gradient(180deg,#1b1430,#120d21);color:var(--gs-gold-lt);padding:12px 16px;position:sticky;top:0;z-index:50;box-shadow:0 2px 16px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid rgba(255,205,130,.35);}
 #studentRoot .hd-l{display:flex;flex-direction:column;}
@@ -192,7 +192,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .finale p{font-size:14px;color:var(--gs-lilac);line-height:1.7;}
 #studentRoot .top-back{font-size:13px;color:var(--gs-gold);font-weight:800;cursor:pointer;margin-bottom:10px;display:inline-block;position:relative;z-index:1;}
 
-#studentRoot .modal-ov{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+#studentRoot .modal-ov{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;}
 #studentRoot .modal-box{background-image:linear-gradient(170deg,var(--gs-parchment-1),var(--gs-parchment-2));border-radius:16px;padding:26px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.6);color:var(--gs-ink-brown);}
 #studentRoot .modal-icon{width:56px;margin:0 auto 4px;display:block;}
 #studentRoot .modal-box .em{font-size:56px;}
@@ -209,7 +209,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .note-box{background:rgba(46,32,80,.86);border:1px solid rgba(255,205,130,.35);border-radius:8px;padding:12px 16px;color:var(--gs-gold-lt);font-weight:700;font-size:14px;line-height:1.6;box-shadow:0 6px 18px rgba(0,0,0,.55);}
 #studentRoot .note-box .sub{font-weight:400;color:var(--gs-lilac);font-size:12.5px;}
 
-#studentRoot .parchment-frame{flex:1 1 380px;max-width:520px;background-image:linear-gradient(180deg,rgba(20,14,32,.15),rgba(20,14,32,.15)),url('assets/background_problem_frame.png');background-size:100% 100%,100% 100%;background-repeat:no-repeat,no-repeat;padding:9% 10% 10%;box-sizing:border-box;}
+#studentRoot .parchment-frame{flex:1 1 380px;max-width:520px;margin:0 auto;background-image:linear-gradient(180deg,rgba(20,14,32,.15),rgba(20,14,32,.15)),url('assets/background_problem_frame.png');background-size:100% 100%,100% 100%;background-repeat:no-repeat,no-repeat;padding:9% 10% 10%;box-sizing:border-box;}
 #studentRoot .parchment-frame-inner{display:flex;flex-direction:column;align-items:center;text-align:center;}
 #studentRoot .room-icon-lg{width:96px;filter:drop-shadow(0 5px 10px rgba(0,0,0,.4));}
 #studentRoot .room-title{font-family:'Nanum Myeongjo',serif;font-size:28px;font-weight:800;color:var(--gs-ink-brown);margin-top:6px;}
@@ -224,8 +224,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .mission-icon .badge-img{position:absolute;width:30px;right:-2px;top:-6px;}
 #studentRoot .mission-icon.solved .badge-img{right:4px;bottom:-2px;top:auto;width:26px;}
 
-#studentRoot .celebrate-ov{position:fixed;inset:0;z-index:250;display:flex;align-items:center;justify-content:center;padding:24px;background-image:linear-gradient(180deg,rgba(16,10,32,.45),rgba(16,10,32,.85)),url('assets/background_mission_select.png');background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;}
-#studentRoot .celebrate-inner{display:flex;gap:32px;flex-wrap:wrap;align-items:center;justify-content:center;max-width:900px;}
+#studentRoot .celebrate-ov{position:fixed;inset:0;z-index:250;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px;background-image:linear-gradient(180deg,rgba(16,10,32,.45),rgba(16,10,32,.85)),url('assets/background_mission_select.png');background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;}
+#studentRoot .celebrate-inner{display:flex;gap:32px;flex-wrap:wrap;align-items:center;justify-content:center;max-width:900px;margin:auto;}
 #studentRoot .curse-title{font-family:'Nanum Myeongjo',serif;font-size:44px;font-weight:800;line-height:1.25;color:#fff4dc;text-shadow:0 0 24px rgba(255,190,90,.65),0 4px 12px rgba(0,0,0,.9);text-align:center;}
 #studentRoot .chest-img{display:block;width:110px;margin:0 auto -14px;position:relative;z-index:1;filter:drop-shadow(0 0 22px rgba(255,205,120,.7));}
 #studentRoot .result-card{background-image:linear-gradient(168deg,var(--gs-parchment-1),var(--gs-parchment-2));border-radius:8px;box-shadow:0 14px 36px rgba(0,0,0,.65);border:2px solid rgba(140,105,55,.5);padding:32px 28px 26px;max-width:420px;color:var(--gs-ink-brown);text-align:center;}
@@ -1178,8 +1178,9 @@ function openFinalMission(){
   else{openScan();}
 }
 function showCelebration(){
-  const solvedCount=Object.values(QUESTIONS).flat().filter(q=>solvedIds[q.qid]).length;
-  const totalQ=Object.values(QUESTIONS).flat().length;
+  const touchedRoomIds=ROOMS.filter(r=>roomProgress(r.id)>0).map(r=>r.id);
+  const solvedCount=touchedRoomIds.reduce((sum,rid)=>sum+roomProgress(rid),0)+(solvedIds["R6Q1"]?1:0);
+  const totalQ=touchedRoomIds.reduce((sum,rid)=>sum+QUESTIONS[rid].length,0)+QUESTIONS.R6.length;
   const roomsDone=ROOMS.filter(r=>roomProgress(r.id)===8).length;
   const ov=document.createElement("div");
   ov.className="celebrate-ov";
@@ -1373,7 +1374,7 @@ function showGradeGate(qid,mode){
   h+='<div class="center-icon">🙋</div>';
   h+='<div class="grade-warn" style="font-size:15px;text-align:center;line-height:1.6;">'+warnMsg+'</div>';
   if(helpStudent){
-    h+='<div class="grade-warn" style="margin-top:8px;text-align:center;line-height:1.6;">🤝 '+escapeHtml(helpStudent.name)+' 친구는 같은 학년이나 한 학년 위 친구가 도와줘도 좋아요. 함께 풀어보세요!</div>';
+    h+='<div class="grade-warn" style="margin-top:8px;text-align:center;line-height:1.6;background:rgba(120,90,200,.14);border-color:rgba(160,120,220,.4);">🤝 '+escapeHtml(helpStudent.name)+' 친구는 같은 학년이나 한 학년 위 친구가 도와줘도 좋아요. 함께 풀어보세요!</div>';
   }
   h+='<button class="btn btn-lg btn-primary" style="margin-top:14px" onclick="showQuestionScreen(\''+qid+'\',\''+mode+'\')">확인</button>';
   h+="</div>";
@@ -1402,7 +1403,7 @@ function showQuestionScreen(qid,mode,requiredQid){
   h+='<div class="q-badges"><span class="badge b-id">'+qid+"</span>"+(q.grade?"<span class=\"badge b-grade\">"+q.grade+"학년</span>":"")+"<span class=\"badge b-unit\">"+room.emoji+" "+room.name+" · "+q.unit+"</span></div>";
 
   if(mode==="locked"){
-    h+='<div class="center-icon">🔒</div><div class="fb-box fb-lock">아직 열 수 없어요!<br>이 방은 순서대로 풀어야 해요.<br>지금 풀어야 할 문제: <b>'+requiredQid+"</b></div>";
+    h+='<div class="fb-box fb-lock"><img src="assets/status_locked.png" alt="">아직 열 수 없어요!<br>이 방은 순서대로 풀어야 해요.<br>지금 풀어야 할 문제: <b>'+requiredQid+"</b></div>";
     h+='<button class="btn btn-lg btn-primary" style="margin-top:10px" onclick="requestHelp(\''+rid+"');goHome();\">🙋 선생님께 도움 요청하기</button>";
     h+="</div></div>";
     h+='<button class="btn btn-lg btn-sub" style="margin-top:12px" onclick="goHome()">홈으로</button>';
