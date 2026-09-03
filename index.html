@@ -313,6 +313,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #adminRoot .qedit{border-top:1px solid var(--bdr);padding:10px 0;}
 #adminRoot .qedit textarea{width:100%;min-height:52px;padding:6px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit;}
 #adminRoot .qedit input[type=text],#adminRoot .qedit input:not([type]){padding:5px 8px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;font-family:inherit;}
+#adminRoot .guide-step{background:var(--card);border-radius:10px;box-shadow:var(--sh);padding:16px 16px 16px 54px;margin-bottom:14px;position:relative;}
+#adminRoot .guide-step-num{position:absolute;left:14px;top:16px;width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;}
+#adminRoot .guide-step h3{font-size:15px;margin-bottom:6px;color:var(--navy);}
+#adminRoot .guide-step p{font-size:13px;line-height:1.65;color:var(--tx2);margin-bottom:6px;}
+#adminRoot .guide-step p:last-child{margin-bottom:0;}
+#adminRoot .guide-step ul{margin:4px 0 6px 18px;font-size:13px;line-height:1.65;color:var(--tx2);}
+#adminRoot .guide-note{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;border-radius:8px;padding:8px 12px;font-size:12px;margin-top:8px;}
+#adminRoot .guide-warn{background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;border-radius:8px;padding:8px 12px;font-size:12px;margin-top:8px;}
+#adminRoot .guide-link-box{display:flex;gap:8px;align-items:center;background:#F0F3F7;border-radius:8px;padding:10px 12px;margin-top:8px;flex-wrap:wrap;}
+#adminRoot .guide-link-box code{font-size:13px;font-weight:700;color:var(--navy);word-break:break-all;}
+#adminRoot .guide-faq details{border-top:1px solid var(--bdr);padding:10px 0;}
+#adminRoot .guide-faq details:first-child{border-top:none;}
+#adminRoot .guide-faq summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--navy);}
+#adminRoot .guide-faq p{font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.65;}
 @media print{
   #adminRoot .hd,#adminRoot .actions,#adminRoot .tabs{display:none!important;}
   #adminRoot .wrap{padding:0;max-width:none;}
@@ -339,6 +353,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <h1>🔑 방탈출 관리자 페이지</h1>
     <div class="sub">실시간 진행 현황 · QR 코드 인쇄</div>
     <div class="tabs">
+      <button class="tab" id="tabGuide" onclick="showTab('guide')">📖 사용설명서</button>
       <button class="tab on" id="tabDash" onclick="showTab('dash')">📊 대시보드</button>
       <button class="tab" id="tabRoster" onclick="showTab('roster')">🧑‍🤝‍🧑 학생 배정</button>
       <button class="tab" id="tabQuestions" onclick="showTab('questions')">📝 문제 관리</button>
@@ -348,6 +363,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   </div>
   <div class="wrap">
     <div id="globalErr" style="display:none;color:#E0465A;background:#FDEEEF;border:1px solid #F5C6CB;border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;"></div>
+    <div id="viewGuide" style="display:none"></div>
     <div id="viewDash"></div>
     <div id="viewRoster" style="display:none"></div>
     <div id="viewQuestions" style="display:none"></div>
@@ -649,16 +665,97 @@ function exitAdminMode(){
 }
 function showTab(t){
   currentTab=t;
+  document.getElementById("tabGuide").className="tab"+(t==="guide"?" on":"");
   document.getElementById("tabDash").className="tab"+(t==="dash"?" on":"");
   document.getElementById("tabRoster").className="tab"+(t==="roster"?" on":"");
   document.getElementById("tabQuestions").className="tab"+(t==="questions"?" on":"");
   document.getElementById("tabQr").className="tab"+(t==="qr"?" on":"");
+  document.getElementById("viewGuide").style.display=t==="guide"?"":"none";
   document.getElementById("viewDash").style.display=t==="dash"?"":"none";
   document.getElementById("viewRoster").style.display=t==="roster"?"":"none";
   document.getElementById("viewQuestions").style.display=t==="questions"?"":"none";
   document.getElementById("viewQr").style.display=t==="qr"?"":"none";
+  if(t==="guide")renderGuideTab();
   if(t==="qr")renderQrPage();
   if(t==="questions")renderQuestionsTab();
+}
+function guideStep(n,title,tabHint,lines){
+  let h='<div class="guide-step"><div class="guide-step-num">'+n+'</div><h3>'+escapeHtml(title)+(tabHint?' <span style="font-weight:400;font-size:12px;color:var(--tx2);">('+tabHint+')</span>':'')+'</h3><ul>';
+  lines.forEach(l=>{h+='<li>'+l+'</li>';});
+  h+='</ul></div>';
+  return h;
+}
+function guideFaq(q,a){
+  return '<details><summary>'+escapeHtml(q)+'</summary><p>'+escapeHtml(a)+'</p></details>';
+}
+function copyGuideLink(){
+  const el=document.getElementById("guideLinkTxt");
+  const txt=el?el.textContent:"";
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>alert("주소를 복사했어요.")).catch(()=>alert("복사에 실패했어요. 주소를 직접 선택해서 복사해주세요."));
+  }else{
+    alert("이 브라우저에서는 자동 복사가 안 돼요. 주소를 직접 선택해서 복사해주세요.");
+  }
+}
+function renderGuideTab(){
+  const schoolId=(typeof SCHOOL_ID!=="undefined")?SCHOOL_ID:"";
+  const link=location.origin+location.pathname+(schoolId?("?school="+schoolId):"");
+  const schoolLine=schoolId
+    ? '<div class="guide-note">🏫 지금 보고 계신 이 페이지의 학교 코드는 <b>'+escapeHtml(schoolId)+'</b> 이에요. 다른 학교와 명단·문제·진행 기록이 완전히 분리되어 있어요.</div>'
+    : '<div class="guide-note">지금은 학교 구분 없이 하나의 명단만 쓰는 기본 상태예요.</div>';
+  let h='';
+  h+='<div class="card"><h3 style="margin-bottom:8px;">📖 사용설명서</h3>';
+  h+='<p style="font-size:13px;color:var(--tx2);line-height:1.65;">컴퓨터를 잘 몰라도 아래 순서대로만 따라 하면 바로 사용할 수 있어요.</p>';
+  h+=schoolLine;
+  h+='<div class="guide-link-box"><span style="font-size:12px;color:var(--tx2);">학생들에게 나눠줄 주소</span><code id="guideLinkTxt">'+escapeHtml(link)+'</code><button class="btn btn-sub" style="padding:5px 10px;font-size:11px" onclick="copyGuideLink()">📋 복사</button></div>';
+  h+='<div class="guide-warn">⚠️ 지금 로그인한 관리자 비밀번호는 선생님만 알고 계세요. 학생들에게는 위 주소만 알려주면 돼요.</div>';
+  h+='</div>';
+
+  h+=guideStep(1,"학생 명단 올리고 조 편성하기","🧑‍🤝‍🧑 학생 배정 탭",[
+    "위쪽 탭에서 <b>학생 배정</b>을 눌러주세요.",
+    "구글시트 링크를 붙여넣거나, 엑셀 파일을 올려주세요. 표는 <b>학년, 이름</b> 두 칸으로 되어 있어야 해요.",
+    "구글시트를 쓴다면 공유 설정을 \"링크가 있는 모든 사용자 - 뷰어\"로 바꿔주세요.",
+    "조 개수를 정하고 <b>이 명단으로 조 편성하기</b>를 누르면 학생들이 자동으로 조에 나뉘어 배정돼요.",
+    "나중에 특정 학생의 조를 바꾸고 싶으면 표에서 조 배정 칸을 눌러 바꾸면 바로 반영돼요."
+  ]);
+
+  h+=guideStep(2,"QR 코드 인쇄해서 각 교실에 붙이기","🖨️ QR 인쇄 탭",[
+    "위쪽 탭에서 <b>QR 인쇄</b>를 누르면 방마다 문제별 QR 코드가 나와요.",
+    "<b>인쇄하기</b> 버튼을 눌러 종이로 뽑은 뒤, 카드를 잘라서 해당 교실의 문제 자리마다 붙여주세요.",
+    "QR 카드 밑에 적힌 6자리 코드는 카메라가 안 될 때 <b>선생님이 대신 입력</b>해주기 위한 것이에요. 학생에게 코드를 알려줄 필요는 없어요."
+  ]);
+
+  h+=guideStep(3,"학생들에게 안내하기",null,[
+    "위에 있는 <b>학생들에게 나눠줄 주소</b>를 학생용 태블릿·스마트폰에서 열게 해주세요.",
+    "학생은 우리 조 선택 → 교실 선택 → <b>QR 스캔하기</b> 버튼으로 카메라를 켜서 문제 옆 QR을 비추면 문제가 나와요.",
+    "카메라가 안 켜지거나 인식이 안 되면 화면에 \"선생님께 도움을 요청하세요\"라고 나와요. 이때 선생님이 QR 카드 밑의 6자리 코드를 학생 화면의 입력 칸에 대신 넣어주면 문제가 열려요.",
+    "한 방의 문제를 다 풀면 다음 문제가 열리고, 모든 방을 풀면 강당(협동 미션)이 열려요."
+  ]);
+
+  h+=guideStep(4,"진행 상황 실시간으로 확인하기","📊 대시보드 탭",[
+    "위쪽 탭에서 <b>대시보드</b>를 누르면 조별로 어디까지 풀었는지 실시간으로 보여요.",
+    "학생이 도움을 요청하면 이 화면 위쪽에 노란색으로 표시돼요.",
+    "리허설을 해봤다면, 실제 행사 전에 <b>전체 초기화</b> 버튼으로 진행 기록만 지우고 다시 시작할 수 있어요. (명단과 문제는 그대로 남아요)"
+  ]);
+
+  h+=guideStep(5,"문제 내용 바꾸기 (필요할 때만)","📝 문제 관리 탭",[
+    "위쪽 탭에서 <b>문제 관리</b>를 누르면 방별로 모든 문제와 정답을 볼 수 있어요.",
+    "문제 하나씩 글자를 고쳐서 <b>저장</b>을 누르면 바로 학생 화면에 반영돼요.",
+    "문제가 많아서 한꺼번에 바꾸고 싶으면, 이 페이지를 인쇄한 것과 같은 형식의 PDF 파일을 만들어 <b>PDF로 일괄 수정</b>에 올리면 바뀐 내용만 자동으로 찾아줘요.",
+    "그림이 있는 문제는 문제 옆의 <b>그림 올리기</b>로 사진 파일을 올리면 돼요."
+  ]);
+
+  h+='<div class="card"><h3 style="margin-bottom:10px;">❓ 자주 묻는 질문</h3><div class="guide-faq">';
+  h+=guideFaq("관리자 비밀번호를 잊어버렸어요.","이 프로그램을 처음 전달해준 선생님에게 비밀번호를 다시 물어보세요. 학교마다 비밀번호가 다르게 설정되어 있어요.");
+  h+=guideFaq("명단을 잘못 올렸어요. 다시 올려도 되나요?","네, 다시 올려서 조 편성을 새로 하면 됩니다. 명단만 새로 바뀌고, 이미 학생들이 푼 문제 기록은 그대로 유지돼요.");
+  h+=guideFaq("QR 스캔이 계속 안 돼요.","교실이 너무 어둡지 않은지, QR이 훼손되지 않았는지 확인해주세요. 그래도 안 되면 QR 카드 밑에 적힌 6자리 코드를 선생님이 학생 화면의 입력 칸에 직접 입력해주면 문제를 열 수 있어요.");
+  h+=guideFaq("행사가 끝난 뒤 다음에 또 쓰고 싶어요.","대시보드의 '전체 초기화' 버튼을 누르면 명단과 문제는 그대로 두고 진행 기록만 지워져서 처음부터 다시 시작할 수 있어요.");
+  if(schoolId){
+    h+=guideFaq("다른 학교가 우리 학교 자료를 볼 수 있나요?","아니요. 학교 코드(?school="+schoolId+")가 다르면 명단·문제·진행 기록이 서로 완전히 분리되어 저장돼요. 다만 이 방식은 완벽한 보안은 아니라 실수로 다른 학교 페이지에 들어가는 것을 막는 정도이니, 주소와 비밀번호를 외부에 공개하지 않도록 주의해주세요.");
+  }
+  h+='</div></div>';
+
+  document.getElementById("viewGuide").innerHTML=h;
 }
 function activeRoomIdFor(solved){
   for(const r of ROOMS){
