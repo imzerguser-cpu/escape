@@ -195,21 +195,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .scr-hd{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px;}
 #studentRoot .scr-hd .lbl{font-size:12px;font-weight:800;color:var(--gs-ink-brown-2);}
 #studentRoot .scr-hd button{border:1px solid rgba(140,105,55,.4);background:rgba(255,255,255,.4);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--gs-ink-brown);cursor:pointer;font-family:'Nanum Gothic',sans-serif;}
-#studentRoot .canvas-wrap{position:relative;height:220px;border:1px solid rgba(140,105,55,.4);border-radius:10px;background:#15111f;touch-action:none;overflow:hidden;}
+#studentRoot .canvas-wrap{position:relative;height:clamp(260px,46vh,460px);border:1px solid rgba(140,105,55,.4);border-radius:10px;background:#15111f;touch-action:none;overflow:hidden;margin-top:10px;}
 #studentRoot .canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
 
-/* 문제 풀이 화면: 가로/세로에 따라 문제-풀이공간 배치를 바꿈 (가로에서 풀이 공간이 너무 짧아 터치가 부정확해지는 문제 대응) */
+/* 문제 풀이 화면: 태블릿 가로 사용을 기본으로 하여 문제→정답 입력→풀이 공간을 위에서 아래로 한 줄로 배치 (세로 전환 대응 분기 없음) */
 #studentRoot[data-scene="study"] .wrap{max-width:1040px;}
-#studentRoot .q-split{display:flex;flex-direction:column;gap:16px;width:100%;}
-#studentRoot .q-pane{min-width:0;}
-#studentRoot .q-canvas-pane{min-width:0;display:flex;flex-direction:column;}
-#studentRoot .q-canvas-pane .canvas-wrap{flex:1;min-height:220px;}
-@media (orientation:landscape){
-  #studentRoot[data-scene="study"] .parchment-frame{max-width:960px;}
-  #studentRoot .q-split{flex-direction:row;align-items:stretch;}
-  #studentRoot .q-pane{flex:1 1 0;}
-  #studentRoot .q-canvas-pane{flex:1 1 0;}
-}
+#studentRoot[data-scene="study"] .parchment-frame{max-width:960px;}
 
 #studentRoot .finale{text-align:center;padding:40px 16px;position:relative;z-index:1;}
 #studentRoot .finale .em{font-size:64px;}
@@ -237,7 +228,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 
 #studentRoot .parchment-frame{flex:1 1 380px;max-width:520px;margin:0 auto;background-image:linear-gradient(180deg,rgba(20,14,32,.15),rgba(20,14,32,.15)),url('assets/background_problem_frame.png');background-size:100% 100%,100% 100%;background-repeat:no-repeat,no-repeat;padding:9% 10% 10%;box-sizing:border-box;}
 #studentRoot .parchment-frame-inner{display:flex;flex-direction:column;align-items:center;text-align:center;}
-#studentRoot .room-icon-lg{width:96px;filter:drop-shadow(0 5px 10px rgba(0,0,0,.4));}
+#studentRoot .room-photo-lg{width:100%;max-width:360px;aspect-ratio:800/436;object-fit:cover;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.5);margin-bottom:4px;}
 #studentRoot .room-title{font-family:'Nanum Myeongjo',serif;font-size:28px;font-weight:800;color:var(--gs-ink-brown);margin-top:6px;}
 #studentRoot .room-subprog{font-size:15px;color:var(--gs-ink-brown-2);margin-top:2px;}
 
@@ -586,9 +577,7 @@ R6:[
 };
 
 const ALL_ROOMS=ROOMS.concat([FINAL_ROOM]);
-const ROOM_ICON={R1:"classroom_library.png",R2:"classroom_computer.png",R3:"classroom_english.png",R4:"classroom_vr.png",R5:"classroom_auditorium.png"};
-const FINAL_ROOM_ICON="classroom_gym.png";
-/* 홈(교실 선택) 화면 카드 배경 전용 사진 — 미션 선택 화면의 작은 아이콘(ROOM_ICON)과는 별개 */
+/* 홈(교실 선택) 카드와 교실 상세 화면이 같은 사진을 쓰도록 공용 사용 */
 const ROOM_PHOTO={R1:"classroom_library_photo.png",R2:"classroom_computer_photo.png",R3:"classroom_english_photo.png",R4:"classroom_vr_photo.png",R5:"classroom_auditorium_photo.png"};
 const FINAL_ROOM_PHOTO="classroom_gym_photo.png";
 function teamIconSrc(n){const i=((Number(n)-1)%5+5)%5+1;return "assets/team_"+i+".png";}
@@ -1207,12 +1196,12 @@ function saveSubmission(qid,val,isCorrect){
   try{work=canvas?canvas.toDataURL("image/png"):"";}catch(e){}
   dbRef.child("submissions").child(qid).set({value:(val||"").toString(),work,autoCorrect:!!isCorrect,ts:Date.now()});
 }
-function showInfoModal(iconSrc,title,bodyHtml){
+function showInfoModal(iconSrc,title,bodyHtml,btnLabel){
   const ov=document.createElement("div");
   ov.className="modal-ov";
   ov.innerHTML='<div class="modal-box">'+(iconSrc?'<img class="modal-icon" src="'+iconSrc+'" alt="">':"")
     +'<h3 style="text-align:center;">'+title+'</h3><p>'+bodyHtml+'</p>'
-    +'<button class="btn btn-lg btn-primary" onclick="this.closest(\'.modal-ov\').remove()">확인</button></div>';
+    +'<button class="btn btn-lg btn-primary" onclick="this.closest(\'.modal-ov\').remove()">'+(btnLabel||"확인")+'</button></div>';
   document.getElementById("studentRoot").appendChild(ov);
 }
 function showWrongNoticeModal(n){
@@ -1221,6 +1210,9 @@ function showWrongNoticeModal(n){
     "다시 풀어주세요!",
     escapeHtml(n.roomName||"")+'의 <b>'+escapeHtml(n.qid||"")+'</b> 문제를 선생님이 다시 확인하셨어요.<br>'+escapeHtml(n.msg||"틀렸어요, 다시 풀어볼까요?")
   );
+}
+function showWorkRequiredModal(){
+  showInfoModal("","⚠️ 풀이과정을 꼭 남겨주세요!","안 적으면 오답 처리되어 다시 풀어야 해요.","닫기");
 }
 function openFinalMission(){
   if(!finalMissionAvailable())return;
@@ -1456,24 +1448,18 @@ function showQuestionScreen(qid,mode,requiredQid){
     return;
   }
 
-  // active — 가로모드: 문제(왼쪽)/풀이공간(오른쪽) 좌우분할, 세로모드: 위/아래로 쌓임 (CSS .q-split이 담당)
-  h+='<div class="q-split"><div class="q-pane">';
-  if(MATH_ROOMS.includes(rid)){
-    h+='<div class="fb-box fb-bad" style="margin-top:0;margin-bottom:14px;">⚠️ 풀이과정을 꼭 남겨주세요!<br>안 적으면 오답 처리되어 다시 풀어야 해요.</div>';
-  }
+  // active — 태블릿 가로 사용을 기본값으로: 문제 → 정답 입력 → 풀이 공간(전체 너비)을 위에서 아래로 배치
   h+='<div class="ans-row"><input class="txt-inp" id="ansInp" placeholder="정답 입력" autocomplete="off" autocapitalize="off"><button class="btn btn-green" id="submitBtn" style="padding:0 18px" onclick="submitAnswer()">제출</button></div>';
   h+='<div id="fbArea"></div>';
-  h+='</div>';
-  h+='<div class="q-canvas-pane">';
   h+='<div class="scr-hd"><span class="lbl">✏️ 풀이 공간</span><button onclick="clearScratch()">🗑 지우기</button></div>';
   h+='<div class="canvas-wrap" id="canvasWrap"><canvas id="scratchCanvas"></canvas></div>';
-  h+='</div></div>';
   h+="</div></div>";
   app.innerHTML=h;
   renderCooldown();
   initCanvas();
   const inp=document.getElementById("ansInp");
-  if(inp){inp.addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer();});inp.focus();}
+  if(inp){inp.addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer();});if(!MATH_ROOMS.includes(rid))inp.focus();}
+  if(MATH_ROOMS.includes(rid))showWorkRequiredModal();
 }
 function resizeCanvasBuffer(){
   const wrap=document.getElementById("canvasWrap");
@@ -1670,7 +1656,7 @@ function renderRoomDetail(rid){
   h+='<button class="btn btn-lg btn-sub" onclick="'+(isPopup?"window.close()":"goHome()")+'">'+(isPopup?"✕ 창 닫기":"← 이전")+'</button>';
   h+='</div>';
   h+='<div class="parchment-frame"><div class="parchment-frame-inner">';
-  h+='<img class="room-icon-lg" src="assets/'+(ROOM_ICON[rid]||FINAL_ROOM_ICON)+'" alt="">';
+  h+='<img class="room-photo-lg" src="assets/'+(ROOM_PHOTO[rid]||FINAL_ROOM_PHOTO)+'" alt="">';
   h+='<div class="room-title">'+room.name+'</div>';
   h+='<div class="room-subprog">'+p+' / 8 해결</div>';
   h+='<div class="mission-grid">';
