@@ -178,7 +178,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .qimg table.plain th{background:rgba(140,105,55,.12);}
 #studentRoot .pictogram{font-size:30px;text-align:center;letter-spacing:8px;}
 #studentRoot .dotgrid{font-size:19px;text-align:center;letter-spacing:2px;color:var(--gs-ink-brown-2);line-height:1.6;font-weight:700;}
-#studentRoot .q-text{font-size:16px;font-weight:700;margin:12px 0;line-height:1.6;color:#1a0f04;text-shadow:0 1px 0 rgba(255,255,255,.35);}
+#studentRoot .q-text{font-size:16px;font-weight:700;margin:12px 0;line-height:1.6;color:#fff;text-shadow:-1px -1px 0 rgba(20,14,10,.85),1px -1px 0 rgba(20,14,10,.85),-1px 1px 0 rgba(20,14,10,.85),1px 1px 0 rgba(20,14,10,.85),0 2px 6px rgba(0,0,0,.5);}
 #studentRoot .ans-row{display:flex;gap:8px;margin-top:10px;}
 #studentRoot .ans-row .txt-inp{text-transform:none;}
 
@@ -1413,7 +1413,7 @@ function showQuestionScreen(qid,mode,requiredQid){
   let expectedShown="";
   if(q.type==="random"){
     const pick=randomPicks[qid];
-    bodyText=q.text+'<br><span style="font-size:20px;font-weight:900;color:var(--gs-ink-brown)">"'+(pick?pick.ko:"")+'"</span>';
+    bodyText=q.text+'<br><span style="font-size:20px;font-weight:900;color:#fff;text-shadow:-1px -1px 0 rgba(20,14,10,.85),1px -1px 0 rgba(20,14,10,.85),-1px 1px 0 rgba(20,14,10,.85),1px 1px 0 rgba(20,14,10,.85),0 2px 6px rgba(0,0,0,.5)">"'+(pick?pick.ko:"")+'"</span>';
     expectedShown=pick?pick.en:"";
   }else{
     expectedShown=q.answer;
