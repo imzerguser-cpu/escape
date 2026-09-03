@@ -190,7 +190,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 #studentRoot .fb-review{background:rgba(46,32,80,.5);color:var(--gs-lilac-lt);border:1px solid rgba(201,185,232,.35);}
 
 #studentRoot .center-icon{font-size:42px;text-align:center;margin-bottom:6px;}
-#studentRoot .cooldown-txt{font-size:12px;color:var(--gs-lilac);text-align:center;margin-top:8px;}
 
 #studentRoot .scr-hd{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px;}
 #studentRoot .scr-hd .lbl{font-size:12px;font-weight:800;color:var(--gs-ink-brown-2);}
@@ -387,7 +386,6 @@ const ROOMS=[
  {id:"R5",emoji:"🏛️",name:"강당"},
 ];
 const FINAL_ROOM={id:"R6",emoji:"🤸",name:"협동 미션(강당)"};
-const MATH_ROOMS=["R1","R2","R5"];
 /* 이 학생들의 학년 문제가 나오면, 같은 조의 같은 학년 또는 한 학년 위 친구가 도와줄 수 있다는 안내를 띄운다 */
 const HELP_STUDENTS=[{name:"성부겸",grade:4},{name:"백은성",grade:3},{name:"김수연",grade:5},{name:"이태훈",grade:6}];
 
@@ -1211,9 +1209,6 @@ function showWrongNoticeModal(n){
     escapeHtml(n.roomName||"")+'의 <b>'+escapeHtml(n.qid||"")+'</b> 문제를 선생님이 다시 확인하셨어요.<br>'+escapeHtml(n.msg||"틀렸어요, 다시 풀어볼까요?")
   );
 }
-function showWorkRequiredModal(){
-  showInfoModal("","⚠️ 풀이과정을 꼭 남겨주세요!","안 적으면 오답 처리되어 다시 풀어야 해요.","닫기");
-}
 function openFinalMission(){
   if(!finalMissionAvailable())return;
   if(finalDone()){handleScan("R6Q1");}
@@ -1455,22 +1450,25 @@ function showQuestionScreen(qid,mode,requiredQid){
   h+='<div class="canvas-wrap" id="canvasWrap"><canvas id="scratchCanvas"></canvas></div>';
   h+="</div></div>";
   app.innerHTML=h;
-  renderCooldown();
   initCanvas();
   const inp=document.getElementById("ansInp");
-  if(inp){inp.addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer();});if(!MATH_ROOMS.includes(rid))inp.focus();}
-  if(MATH_ROOMS.includes(rid))showWorkRequiredModal();
+  if(inp){inp.addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer();});inp.focus();}
 }
 function resizeCanvasBuffer(){
   const wrap=document.getElementById("canvasWrap");
   const canvas=document.getElementById("scratchCanvas");
   if(!wrap||!canvas)return;
+  let prevImg=null;
+  if(scratchHasDrawing&&canvas.width>0&&canvas.height>0){
+    try{prevImg=canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height);}catch(e){}
+  }
   const rect=wrap.getBoundingClientRect();
   canvas.width=rect.width||wrap.offsetWidth||300;
   canvas.height=rect.height||wrap.offsetHeight||220;
   canvasCtx=canvas.getContext("2d");
   canvasCtx.lineWidth=2.5;canvasCtx.lineCap="round";canvasCtx.lineJoin="round";canvasCtx.strokeStyle="#f4ecd8";
-  scratchHasDrawing=false;
+  if(prevImg){try{canvasCtx.putImageData(prevImg,0,0);}catch(e){}}
+  else{scratchHasDrawing=false;}
 }
 function initCanvas(){
   resizeCanvasBuffer();
@@ -1521,37 +1519,16 @@ function clearScratch(){
   if(canvas&&canvasCtx)canvasCtx.clearRect(0,0,canvas.width,canvas.height);
   scratchHasDrawing=false;
 }
-function renderCooldown(){
-  const qid=activeQid;const c=cooldown[qid];
-  const fb=document.getElementById("fbArea");
-  const btn=document.getElementById("submitBtn");
-  if(!fb)return;
-  const now=Date.now();
-  if(c&&c.until>now){
-    const remain=Math.ceil((c.until-now)/1000);
-    fb.innerHTML='<div class="cooldown-txt">오답! '+remain+'초 후 다시 시도할 수 있어요.</div>';
-    if(btn)btn.disabled=true;
-    setTimeout(()=>{if(view==="question"&&activeQid===qid)renderCooldown();},500);
-  }else{
-    if(btn)btn.disabled=false;
-  }
-}
 function submitAnswer(){
   const qid=activeQid,q=findQ(qid);
-  const c=cooldown[qid];
-  if(c&&c.until>Date.now())return;
   const inp=document.getElementById("ansInp");
   const val=inp?inp.value:"";
   const expected=q.type==="random"?(randomPicks[qid]?randomPicks[qid].en:""):q.answer;
   const fb=document.getElementById("fbArea");
-  const rid0=qid.slice(0,2);
-  const answerMatches=normalize(val)===normalize(expected);
-  const noWorkShown=MATH_ROOMS.includes(rid0)&&!scratchHasDrawing;
-  const isCorrect=answerMatches&&!noWorkShown;
+  const isCorrect=normalize(val)===normalize(expected);
   saveSubmission(qid,val,isCorrect);
   if(isCorrect){
     solvedIds[qid]=true;
-    delete cooldown[qid];
     saveCloud();
     const rid=qid.slice(0,2);
     if(rid==="R6"){
@@ -1564,17 +1541,8 @@ function submitAnswer(){
     if(inp)inp.disabled=true;
     const sb=document.getElementById("submitBtn");if(sb)sb.disabled=true;
   }else{
-    const attempts=((c&&c.attempts)||0)+1;
-    const wait=attempts>=2?60:10;
-    cooldown[qid]={until:Date.now()+wait*1000,attempts};
-    saveCloud();
-    if(answerMatches&&noWorkShown){
-      fb.innerHTML='<div class="fb-box fb-bad"><img src="assets/status_failure.png" alt="">정답이지만 풀이과정이 없어서 오답 처리했어요!<br>풀이과정을 꼭 남기고 다시 풀어주세요.</div>';
-    }else{
-      fb.innerHTML='<div class="fb-box fb-bad"><img src="assets/status_failure.png" alt="">정답이 아니에요. 다시 시도해보세요!</div>';
-    }
-    if(inp){inp.value="";}
-    renderCooldown();
+    showInfoModal("assets/status_failure.png","오답이에요","정답이 아니에요. 다시 풀이과정과 답을 적어보세요!","닫기");
+    if(inp){inp.value="";inp.focus();}
   }
 }
 function renderHome(){
