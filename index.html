@@ -815,7 +815,8 @@ function renderGuideTab(targetId){
     schoolStepMedia='<div class="guide-link-box" style="flex-wrap:wrap;"><span style="font-size:12px;color:var(--tx2);">나만의 코드</span>'
       +'<input type="text" id="newSchoolCodeInput" placeholder="예: sunrise2026" style="flex:1;min-width:140px;padding:6px 8px;font-size:13px;border:1px solid var(--bdr);border-radius:6px;">'
       +'<button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="goToMySchoolCode()">✅ 이 코드로 내 주소 만들기</button></div>'
-      +'<div style="margin-top:8px;font-size:12px;color:var(--tx2);">코드를 정하기 어려우시면 <button class="btn btn-sub" style="padding:4px 10px;font-size:11px" onclick="goToRandomSchoolCode()">🎲 자동으로 만들기</button>를 눌러주세요.</div>';
+      +'<div style="margin-top:8px;font-size:12px;color:var(--tx2);">코드를 정하기 어려우시면 <button class="btn btn-sub" style="padding:4px 10px;font-size:11px" onclick="goToRandomSchoolCode()">🎲 자동으로 만들기</button>를 눌러주세요.</div>'
+      +guideShot("assets/guide/step1-address.png","만들고 나면 이렇게 나만의 주소와 학생용 링크가 보여요.");
   }
   h+=guideStep(1,"나만의 주소 만들기","시작하기 전에 꼭 한 번만",
     "이 프로그램은 여러 학교 선생님들이 함께 쓰는 하나의 사이트예요. 그래서 제일 먼저, 우리 학교만의 주소를 새로 만들어야 다른 학교와 자료가 섞이지 않아요.",
@@ -834,7 +835,8 @@ function renderGuideTab(targetId){
       +'<div style="margin-top:8px;font-size:12px;color:var(--tx2);">비밀번호를 새로 바꾸고 싶으면 <button class="btn btn-sub" style="padding:4px 10px;font-size:11px" onclick="regenerateAdminPw()">🔄 새 비밀번호 만들기</button>를 눌러주세요. (바꾸면 이전 비밀번호는 더 이상 안 돼요)</div>';
   }else{
     pwStepLines.push('1단계에서 나만의 주소를 먼저 만들어주세요. 주소를 만드는 순간 우리 학교만의 관리자 비밀번호가 자동으로 함께 만들어져요.');
-    pwStepMedia='<div class="guide-note">아직 나만의 주소가 없어요. 1단계로 올라가서 먼저 만들어주세요.</div>';
+    pwStepMedia='<div class="guide-note">아직 나만의 주소가 없어요. 1단계로 올라가서 먼저 만들어주세요.</div>'
+      +guideShot("assets/guide/step2-adminpw.png","주소를 만들고 나면 이렇게 우리 학교만의 비밀번호가 보여요.");
   }
   h+=guideStep(2,"관리자 비밀번호 확인하기","⚙️ 관리자 모드",
     "1단계에서 만든 주소에는 우리 학교만의 관리자 비밀번호가 함께 만들어져요. 아래에서 확인하고, 필요하면 바꿀 수 있어요.",
@@ -857,13 +859,13 @@ function renderGuideTab(targetId){
         "규칙② 그다음 줄(들)에 문제 본문을 적어주세요.",
         "규칙③ 마지막 줄에 <b>\"정답 정답값\"</b> 형식으로 정답을 적어주세요. (예: \"정답 6\") 랜덤으로 출제되는 문제는 정답 줄이 없으니 그대로 두세요.",
         "다 고쳤으면 같은 형식으로 <b>PDF로 저장</b>한 뒤, 문제 관리 화면 맨 위 <b>PDF로 일괄 수정</b>에 올려주세요. 바뀐 부분만 자동으로 찾아서 미리 보여줘요."
-      ])
+      ], guideShot("assets/guide/pdf-upload.png","'문제 관리' 화면 맨 위 — PDF로 일괄 수정 올리기"))
       +guideSubStep("3-2","문제에 그림·사진 올리기",[
         "그림이 들어간 문제는 PDF로는 바꿀 수 없어요 — 사진으로 직접 올려야 해요.",
         "문제 관리 화면에서 사진을 바꾸고 싶은 문제를 찾아, 그 문제 옆의 <b>그림 올리기</b>에서 사진 파일을 선택해주세요.",
         "사진을 올리면 자동으로 크기를 맞춰 저장되고, 학생 화면에 바로 반영돼요.",
         "원래 그림으로 되돌리고 싶으면 <b>원래 그림으로</b> 버튼을 눌러주세요."
-      ])
+      ], guideShot("assets/guide/image-upload.png","문제 하나의 정답 저장 버튼 아래 — 그림 올리기"))
   );
 
   h+=guideStep(4,"QR 코드 생성하기","🖨️ QR 인쇄 탭",
@@ -897,7 +899,7 @@ function renderGuideTab(targetId){
         "특정 학생이 어떤 학년 문제를 어려워해서 같은 조 친구가 도와주면 좋겠다면, 아래 명단 표에서 그 학생의 <b>🙋 도움 필요</b> 칸에 체크해주세요.",
         "체크해두면, 그 학생과 같은 학년의 문제가 나왔을 때 같은 조의 다른 친구들에게 함께 풀어도 좋다는 안내가 자동으로 떠요.",
         "조 배정 칸에서 조만 바꾸는 경우에는 이 표시가 그대로 유지돼요. 다만 명단을 통째로 다시 올리면 새로 만들어지므로, 그때는 도움이 필요한 학생을 다시 체크해주셔야 해요."
-      ])
+      ], guideShot("assets/guide/needs-help-checkbox.png","명단 표의 '도움 필요' 칸 — 체크한 학생은 파란 체크로 표시돼요"))
   );
 
   h+=guideStep(6,"학생들에게 안내하기",null,
