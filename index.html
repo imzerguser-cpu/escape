@@ -605,7 +605,14 @@ function setScene(name){
   if(root)root.setAttribute("data-scene",name||"");
 }
 function escapeHtml(s){return (s||"").toString().replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
-const dbRoot=db.ref("escape_data");
+
+/* ?school=코드 로 명단·문제·진행기록을 분리 저장한다. 코드가 없으면 기존
+   기본 저장소(escape_data 바로 아래)를 그대로 쓴다 — 새로 만든 학교 주소와
+   구분해서, 여러 선생님이 같은 사이트를 써도 서로 데이터가 섞이지 않는다. */
+const urlParamsForSchool=new URLSearchParams(location.search);
+const SCHOOL_ID=(urlParamsForSchool.get("school")||"").trim().replace(/[^A-Za-z0-9_-]/g,"").slice(0,40);
+const ESC_ROOT="escape_data"+(SCHOOL_ID?("/schools/"+SCHOOL_ID):"");
+const dbRoot=db.ref(ESC_ROOT);
 
 /* ===================== 상태 ===================== */
 let appMode="student";
@@ -703,6 +710,18 @@ function guideShotRow(items){
 function guideFaq(q,a){
   return '<details><summary>'+escapeHtml(q)+'</summary><p>'+escapeHtml(a)+'</p></details>';
 }
+function goToMySchoolCode(){
+  const el=document.getElementById("newSchoolCodeInput");
+  const code=(el&&el.value||"").trim().replace(/[^A-Za-z0-9_-]/g,"").slice(0,40);
+  if(!code){alert("코드를 입력해주세요. 영문·숫자로, 다른 학교와 안 겹칠 만한 이름이면 돼요. (예: 선생님 성함, 학교 이름 등)");return;}
+  sessionStorage.setItem("escape_want_guide_tab","1");
+  location.href=location.origin+location.pathname+"?school="+encodeURIComponent(code);
+}
+function goToRandomSchoolCode(){
+  const code=Math.random().toString(36).slice(2,8);
+  sessionStorage.setItem("escape_want_guide_tab","1");
+  location.href=location.origin+location.pathname+"?school="+encodeURIComponent(code);
+}
 function copyGuideLink(){
   const el=document.getElementById("guideLinkTxt");
   const txt=el?el.textContent:"";
@@ -715,18 +734,33 @@ function copyGuideLink(){
 function renderGuideTab(){
   const schoolId=(typeof SCHOOL_ID!=="undefined")?SCHOOL_ID:"";
   const link=location.origin+location.pathname+(schoolId?("?school="+schoolId):"");
-  const schoolLine=schoolId
-    ? '<div class="guide-note">🏫 지금 보고 계신 이 페이지의 학교 코드는 <b>'+escapeHtml(schoolId)+'</b> 이에요. 다른 학교와 명단·문제·진행 기록이 완전히 분리되어 있어요.</div>'
-    : '<div class="guide-note">지금은 학교 구분 없이 하나의 명단만 쓰는 기본 상태예요.</div>';
   let h='';
   h+='<div class="card"><h3 style="margin-bottom:8px;">📖 사용설명서</h3>';
-  h+='<p style="font-size:13px;color:var(--tx2);line-height:1.65;">이 프로그램을 처음 받으신 선생님도 걱정하지 않으셔도 돼요. 아래 1~5단계를 순서대로 한 번씩만 따라 하시면 준비가 끝나고, 그다음부터는 QR 인쇄물만 다시 쓰면 계속 재사용할 수 있어요. 화면 캡처도 함께 넣었으니 지금 보시는 화면과 비교해가며 천천히 진행해주세요.</p>';
-  h+=schoolLine;
-  h+='<div class="guide-link-box"><span style="font-size:12px;color:var(--tx2);">학생들에게 나눠줄 주소</span><code id="guideLinkTxt">'+escapeHtml(link)+'</code><button class="btn btn-sub" style="padding:5px 10px;font-size:11px" onclick="copyGuideLink()">📋 복사</button></div>';
-  h+='<div class="guide-warn">⚠️ 지금 로그인한 관리자 비밀번호는 선생님만 알고 계세요. 학생들에게는 위 주소만 알려주면 되고, 비밀번호까지 알려줄 필요는 없어요.</div>';
+  h+='<p style="font-size:13px;color:var(--tx2);line-height:1.65;">이 프로그램을 처음 받으신 선생님도 걱정하지 않으셔도 돼요. 아래 1~6단계를 순서대로 한 번씩만 따라 하시면 준비가 끝나고, 그다음부터는 QR 인쇄물만 다시 쓰면 계속 재사용할 수 있어요. 화면 캡처도 함께 넣었으니 지금 보시는 화면과 비교해가며 천천히 진행해주세요.</p>';
   h+='</div>';
 
-  h+=guideStep(1,"학생 명단 올리고 조 편성하기","🧑‍🤝‍🧑 학생 배정 탭",
+  const schoolStepLines=[];
+  let schoolStepMedia='';
+  if(schoolId){
+    schoolStepLines.push('🏫 지금 보고 계신 이 주소는 코드 <b>'+escapeHtml(schoolId)+'</b>가 붙은, 선생님만의 주소예요. 다른 선생님이 만든 주소와 명단·문제·진행 기록이 절대 섞이지 않아요.');
+    schoolStepLines.push('아래 주소를 <b>즐겨찾기(북마크)</b>해두시고, 다음에 관리자 페이지에 들어오실 때도 항상 이 주소로 들어와주세요. 학생들에게도 이 주소를 그대로 나눠주시면 돼요.');
+    schoolStepMedia='<div class="guide-link-box"><span style="font-size:12px;color:var(--tx2);">학생들에게 나눠줄 주소</span><code id="guideLinkTxt">'+escapeHtml(link)+'</code><button class="btn btn-sub" style="padding:5px 10px;font-size:11px" onclick="copyGuideLink()">📋 복사</button></div>'
+      +'<div class="guide-warn">⚠️ 지금 로그인한 관리자 비밀번호는 선생님만 알고 계세요. 학생들에게는 위 주소만 알려주면 되고, 비밀번호까지 알려줄 필요는 없어요.</div>';
+  }else{
+    schoolStepLines.push('⚠️ 지금 보고 계신 이 주소는 <b>학교 코드가 없는 기본 주소</b>예요. 이 상태로 그대로 쓰시면 다른 선생님이 올린 명단·문제·진행 기록과 뒤섞일 수 있어요. 반드시 아래에서 나만의 주소를 새로 만든 뒤 사용해주세요.');
+    schoolStepLines.push('코드는 영어·숫자로, 다른 학교와 겹치지 않을 만한 이름이면 돼요. (예: 학교 이름이나 선생님 성함 영문 표기 등)');
+    schoolStepMedia='<div class="guide-link-box" style="flex-wrap:wrap;"><span style="font-size:12px;color:var(--tx2);">나만의 코드</span>'
+      +'<input type="text" id="newSchoolCodeInput" placeholder="예: sunrise2026" style="flex:1;min-width:140px;padding:6px 8px;font-size:13px;border:1px solid var(--bdr);border-radius:6px;">'
+      +'<button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="goToMySchoolCode()">✅ 이 코드로 내 주소 만들기</button></div>'
+      +'<div style="margin-top:8px;font-size:12px;color:var(--tx2);">코드를 정하기 어려우시면 <button class="btn btn-sub" style="padding:4px 10px;font-size:11px" onclick="goToRandomSchoolCode()">🎲 자동으로 만들기</button>를 눌러주세요.</div>';
+  }
+  h+=guideStep(1,"나만의 주소 만들기","시작하기 전에 꼭 한 번만",
+    "이 프로그램은 여러 학교 선생님들이 함께 쓰는 하나의 사이트예요. 그래서 제일 먼저, 우리 학교만의 주소를 새로 만들어야 다른 학교와 자료가 섞이지 않아요.",
+    schoolStepLines,
+    schoolStepMedia
+  );
+
+  h+=guideStep(2,"학생 명단 올리고 조 편성하기","🧑‍🤝‍🧑 학생 배정 탭",
     "가장 먼저 할 일은 학생 명단을 올려서 조를 나누는 거예요. 한 번만 해두면 그다음부터는 대시보드에서 계속 확인할 수 있어요.",
     [
     "위쪽 탭에서 <b>학생 배정</b>을 눌러주세요.",
@@ -739,7 +773,7 @@ function renderGuideTab(){
     guideShot("assets/guide/roster-tab.jpg","'학생 배정' 탭 — 명단 업로드와 조별 배정 화면")
   );
 
-  h+=guideStep(2,"QR 코드 인쇄해서 각 교실에 붙이기","🖨️ QR 인쇄 탭",
+  h+=guideStep(3,"QR 코드 인쇄해서 각 교실에 붙이기","🖨️ QR 인쇄 탭",
     "학생들은 이 QR 코드를 카메라로 찍어서 문제를 하나씩 열어가며 풀게 돼요. 행사 전날 미리 인쇄해두시면 좋아요.",
     [
     "위쪽 탭에서 <b>QR 인쇄</b>를 누르면 도서관·컴퓨터실 등 교실별로, 문제 번호별로 QR 코드가 쭉 나와요.",
@@ -750,10 +784,10 @@ function renderGuideTab(){
     guideShot("assets/guide/qr-tab.jpg","'QR 인쇄' 탭 — 방별 QR 카드 목록 (인쇄하기 버튼으로 출력)")
   );
 
-  h+=guideStep(3,"학생들에게 안내하기",null,
+  h+=guideStep(4,"학생들에게 안내하기",null,
     "이제 학생들이 직접 사용할 차례예요. 아래 화면들이 학생 태블릿·스마트폰에 어떻게 보이는지 미리 확인해보세요.",
     [
-    "위에 있는 <b>학생들에게 나눠줄 주소</b>를 학생용 기기의 인터넷 브라우저에 입력하게 하거나, QR로 만들어 띄워주세요.",
+    "1단계에서 확인한 <b>학생들에게 나눠줄 주소</b>를 학생용 기기의 인터넷 브라우저에 입력하게 하거나, QR로 만들어 띄워주세요.",
     "접속하면 먼저 <b>조 선택</b> 화면이 나와요. 학생은 자기 이름이 있는 조를 찾아 눌러요.",
     "조를 고르면 <b>교실 선택</b> 화면(홈 화면)으로 이동해요. 원하는 교실 카드를 아무거나 눌러 들어가면 돼요 — 정해진 순서는 없어요.",
     "교실에 들어가서 <b>QR 스캔하기</b> 버튼을 누르면 카메라가 켜지고, 문제 옆에 붙여둔 QR을 비추면 문제가 화면에 떠요.",
@@ -767,7 +801,7 @@ function renderGuideTab(){
     ])
   );
 
-  h+=guideStep(4,"진행 상황 실시간으로 확인하기","📊 대시보드 탭",
+  h+=guideStep(5,"진행 상황 실시간으로 확인하기","📊 대시보드 탭",
     "행사가 시작되면 선생님은 대시보드 화면만 계속 보고 계시면 돼요. 모든 조의 상황이 자동으로 업데이트돼요.",
     [
     "위쪽 탭에서 <b>대시보드</b>를 누르면 조별로 어느 교실에 있는지, 몇 문제를 풀었는지가 표로 실시간으로 보여요.",
@@ -778,7 +812,7 @@ function renderGuideTab(){
     guideShot("assets/guide/dashboard.jpg","'대시보드' 탭 — 조별 실시간 진행 현황과 도움 요청 알림")
   );
 
-  h+=guideStep(5,"문제 내용 바꾸기 (필요할 때만)","📝 문제 관리 탭",
+  h+=guideStep(6,"문제 내용 바꾸기 (필요할 때만)","📝 문제 관리 탭",
     "기본으로 들어있는 문제를 그대로 써도 되고, 우리 학교 사정에 맞게 문제나 정답을 바꾸고 싶으면 여기서 수정할 수 있어요.",
     [
     "위쪽 탭에서 <b>문제 관리</b>를 누르면 교실별로 모든 문제와 정답이 나와요.",
@@ -794,9 +828,9 @@ function renderGuideTab(){
   h+=guideFaq("명단을 잘못 올렸어요. 다시 올려도 되나요?","네, 다시 올려서 조 편성을 새로 하면 됩니다. 명단만 새로 바뀌고, 이미 학생들이 푼 문제 기록은 그대로 유지돼요.");
   h+=guideFaq("QR 스캔이 계속 안 돼요.","교실이 너무 어둡지 않은지, QR이 훼손되지 않았는지 확인해주세요. 그래도 안 되면 QR 카드 밑에 적힌 6자리 코드를 선생님이 학생 화면의 입력 칸에 직접 입력해주면 문제를 열 수 있어요.");
   h+=guideFaq("행사가 끝난 뒤 다음에 또 쓰고 싶어요.","대시보드의 '전체 초기화' 버튼을 누르면 명단과 문제는 그대로 두고 진행 기록만 지워져서 처음부터 다시 시작할 수 있어요.");
-  if(schoolId){
-    h+=guideFaq("다른 학교가 우리 학교 자료를 볼 수 있나요?","아니요. 학교 코드(?school="+schoolId+")가 다르면 명단·문제·진행 기록이 서로 완전히 분리되어 저장돼요. 다만 이 방식은 완벽한 보안은 아니라 실수로 다른 학교 페이지에 들어가는 것을 막는 정도이니, 주소와 비밀번호를 외부에 공개하지 않도록 주의해주세요.");
-  }
+  h+=schoolId
+    ? guideFaq("다른 학교가 우리 학교 자료를 볼 수 있나요?","아니요. 학교 코드(?school="+schoolId+")가 다르면 명단·문제·진행 기록이 서로 완전히 분리되어 저장돼요. 다만 이 방식은 완벽한 보안은 아니라 실수로 다른 학교 페이지에 들어가는 것을 막는 정도이니, 주소와 비밀번호를 외부에 공개하지 않도록 주의해주세요.")
+    : guideFaq("주소에 코드를 안 붙이고 그냥 써도 되나요?","안 돼요. 코드가 없으면 다른 선생님이 올린 명단·문제·진행 기록과 한곳에 섞여 저장돼요. 반드시 1단계에서 나만의 주소를 만든 뒤 그 주소로만 사용해주세요.");
   h+='</div></div>';
 
   document.getElementById("viewGuide").innerHTML=h;
@@ -810,7 +844,7 @@ function activeRoomIdFor(solved){
 }
 function saveRequiredRooms(){
   const v=Number(document.getElementById("reqRoomsSel").value);
-  db.ref("escape_data/meta/requiredRooms").set(v).then(()=>alert("설정이 저장되었습니다. 학생 화면에 바로 반영됩니다."));
+  db.ref(ESC_ROOT+"/meta/requiredRooms").set(v).then(()=>alert("설정이 저장되었습니다. 학생 화면에 바로 반영됩니다."));
 }
 function renderDash(all){
   lastAllData=all||{};
@@ -1139,7 +1173,7 @@ function confirmAutoAssign(){
     existingKeys.add(key);
     rosterUpdate[key]={name:s.name,grade:s.grade,teamId:String(s.teamId),ts:Date.now()};
   });
-  db.ref("escape_data").update({roster:rosterUpdate,"meta/teamCount":n}).then(()=>{
+  dbRoot.update({roster:rosterUpdate,"meta/teamCount":n}).then(()=>{
     parsedRosterPreview=null;
     alert("조 편성이 완료되었습니다.");
   }).catch(err=>{
@@ -1147,12 +1181,12 @@ function confirmAutoAssign(){
   });
 }
 function assignTeam(key,val){
-  db.ref("escape_data/roster/"+key+"/teamId").set(val?val:null);
+  db.ref(ESC_ROOT+"/roster/"+key+"/teamId").set(val?val:null);
 }
 function deleteRoster(key){
   const name=(rosterAll[key]&&rosterAll[key].name)||key;
   if(!confirm(name+" 학생을 명단에서 삭제할까요?"))return;
-  db.ref("escape_data/roster/"+key).remove();
+  db.ref(ESC_ROOT+"/roster/"+key).remove();
 }
 
 /* ===================== 학생: 조 선택 ===================== */
@@ -1788,7 +1822,7 @@ function renderRoomDetail(rid){
 }
 function connectFirebase(){
   if(!team)return;
-  dbRef=db.ref("escape_data/team"+team);
+  dbRef=db.ref(ESC_ROOT+"/team"+team);
   dbRef.on("value",snap=>{
     setSync("on");
     const d=snap.val();
@@ -1813,14 +1847,14 @@ function connectFirebase(){
 
 /* ===================== 데이터 동기화 (양쪽 화면 공용) ===================== */
 function connectRoster(){
-  db.ref("escape_data/roster").on("value",snap=>{
+  db.ref(ESC_ROOT+"/roster").on("value",snap=>{
     rosterAll=snap.val()||{};
     computeTeamGrades();
     if(view==="teamPick"&&appMode==="student")renderTeamPick();
     else if(view==="home"&&appMode==="student")setHeader();
     if(appMode==="admin")renderRosterTab();
   });
-  db.ref("escape_data/meta/teamCount").on("value",snap=>{
+  db.ref(ESC_ROOT+"/meta/teamCount").on("value",snap=>{
     teamCount=snap.val()||0;
     if(appMode==="student"&&team&&Number(team)>teamCount){
       leaveTeam();
@@ -1830,7 +1864,7 @@ function connectRoster(){
     if(view==="teamPick"&&appMode==="student")renderTeamPick();
     if(appMode==="admin")renderRosterTab();
   });
-  db.ref("escape_data/meta/requiredRooms").on("value",snap=>{
+  db.ref(ESC_ROOT+"/meta/requiredRooms").on("value",snap=>{
     const newRequiredRooms=snap.val()||5;
     if(newRequiredRooms!==requiredRooms&&appMode==="student"&&view==="home"){
       // 관리자가 방 개수를 변경했을 때 알림
@@ -1845,7 +1879,7 @@ function connectRoster(){
   });
 }
 function connectQuestionOverrides(){
-  db.ref("escape_data/questions").on("value",snap=>{
+  db.ref(ESC_ROOT+"/questions").on("value",snap=>{
     QOVERRIDE=snap.val()||{};
     if(view==="home"&&appMode==="student")renderHome();
     if(currentTab==="questions"&&appMode==="admin")renderQuestionsTab();
@@ -1923,7 +1957,7 @@ function saveQuestion(rid,qid,isRandom){
     const a=document.getElementById("qa_"+qid);
     if(a)upd.answer=a.value.trim();
   }
-  db.ref("escape_data/questions/"+rid+"/"+qid).update(upd).then(()=>alert(qid+" 문제가 저장되었습니다. 학생 화면에 바로 반영됩니다."));
+  db.ref(ESC_ROOT+"/questions/"+rid+"/"+qid).update(upd).then(()=>alert(qid+" 문제가 저장되었습니다. 학생 화면에 바로 반영됩니다."));
 }
 /* 문제 그림은 PDF가 아니라 파일로 직접 올린다 — 업로드한 사진을 캔버스로 축소·압축해
    data URL로 만든 뒤 QOVERRIDE.img에 저장한다 (풀이과정 캔버스를 저장할 때와 같은 방식) */
@@ -1941,7 +1975,7 @@ function uploadQuestionImage(rid,qid,file){
       canvas.getContext("2d").drawImage(img,0,0,w,h);
       const dataUrl=canvas.toDataURL("image/jpeg",0.82);
       const imgHtml='<img src="'+dataUrl+'" alt="" style="max-width:100%;border-radius:8px;">';
-      db.ref("escape_data/questions/"+rid+"/"+qid).update({img:imgHtml}).then(()=>{
+      db.ref(ESC_ROOT+"/questions/"+rid+"/"+qid).update({img:imgHtml}).then(()=>{
         alert(qid+"의 그림이 저장되었습니다. 학생 화면에 바로 반영됩니다.");
       }).catch(e=>alert("저장 중 오류가 발생했어요: "+e.message));
     };
@@ -1953,7 +1987,7 @@ function uploadQuestionImage(rid,qid,file){
 }
 function clearQuestionImage(rid,qid){
   if(!confirm(qid+"의 그림을 원래 그림으로 되돌릴까요?"))return;
-  db.ref("escape_data/questions/"+rid+"/"+qid+"/img").remove().then(()=>alert("원래 그림으로 되돌렸습니다."));
+  db.ref(ESC_ROOT+"/questions/"+rid+"/"+qid+"/img").remove().then(()=>alert("원래 그림으로 되돌렸습니다."));
 }
 /* PDF 문제 일괄 수정: "문제 관리" 화면을 인쇄한 PDF(요소마다 "R1Q1 1학년 단원명" 줄 → 문제 본문 → "정답 값" 줄
    순서로 나옴)를 읽어서 QFULL/QOVERRIDE 대비 달라진 문제만 찾아 미리보기로 보여준다. */
@@ -2061,7 +2095,7 @@ function confirmBulkQuestionUpdate(){
     if(p.unitChanged)upd.unit=p.unit;
     if(p.textChanged)upd.text=p.text;
     if(!p.isRandom&&p.answerChanged)upd.answer=p.answer;
-    return db.ref("escape_data/questions/"+p.rid+"/"+p.qid).update(upd);
+    return db.ref(ESC_ROOT+"/questions/"+p.rid+"/"+p.qid).update(upd);
   })).then(()=>{
     alert(changed.length+"개 문제가 저장되었습니다. 학생 화면에 바로 반영됩니다.");
     parsedQuestionsPreview=null;
@@ -2112,6 +2146,10 @@ window.addEventListener("resize",()=>{
 connectQuestionOverrides();
 connectRoster();
 if(sessionStorage.getItem("escape_admin_ok")==="1"){
+  if(sessionStorage.getItem("escape_want_guide_tab")==="1"){
+    sessionStorage.removeItem("escape_want_guide_tab");
+    currentTab="guide";
+  }
   enterAdminMode();
 }else if(team){
   loadLocal();
