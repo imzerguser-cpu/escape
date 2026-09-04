@@ -267,77 +267,77 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   #studentRoot[data-scene="village"] .room-card,#studentRoot[data-scene="village"] .final-card{display:block;}
 }
 
-/* ===== 관리자 화면 (#adminRoot 스코프) ===== */
-#adminRoot .hd{background:linear-gradient(135deg,var(--navy),var(--navy-g));color:#fff;padding:16px 20px;}
-#adminRoot .hd h1{font-size:19px;}
-#adminRoot .hd .sub{font-size:11px;opacity:.7;margin-top:2px;}
-#adminRoot .tabs{display:flex;gap:2px;background:rgba(255,255,255,.15);border-radius:8px;padding:2px;margin-top:10px;max-width:560px;flex-wrap:wrap;}
-#adminRoot .empty-msg{color:var(--tx2);font-size:13px;padding:20px;text-align:center;}
-#adminRoot select.team-sel{padding:5px 8px;border-radius:6px;border:1px solid var(--bdr);font-family:inherit;font-size:12px;}
-#adminRoot .help-card{border:2px solid #F59E0B;background:#FFFBEB;}
-#adminRoot .help-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #FDE68A;}
-#adminRoot .help-row:first-of-type{border-top:none;}
-#adminRoot .help-title{font-weight:900;color:#92400E;margin-bottom:4px;font-size:14px;}
-#adminRoot .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
-#adminRoot .modal-ov.show{display:flex;}
-#adminRoot .modal-box{background:#fff;border-radius:16px;padding:20px;max-width:760px;width:100%;max-height:85vh;overflow-y:auto;text-align:left;box-shadow:0 16px 48px rgba(0,0,0,.25);}
-#adminRoot .modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:sticky;top:0;background:#fff;padding-bottom:8px;}
-#adminRoot .modal-hd h3{font-size:16px;color:var(--navy);}
-#adminRoot .work-item{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--bdr);}
-#adminRoot .work-item img{max-width:100%;border:1px solid var(--bdr);border-radius:8px;margin-top:6px;background:#fafbfc;}
-#adminRoot .tab{flex:1;padding:8px 6px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:rgba(255,255,255,.7);font-family:inherit;white-space:nowrap;}
-#adminRoot .tab.on{background:#fff;color:var(--navy);}
-#adminRoot .wrap{max-width:1000px;margin:0 auto;padding:18px;}
-#adminRoot .card{background:var(--card);border-radius:10px;box-shadow:var(--sh);padding:16px;margin-bottom:16px;}
-#adminRoot table{width:100%;border-collapse:collapse;font-size:13px;}
-#adminRoot th,#adminRoot td{border:1px solid var(--bdr);padding:8px 6px;text-align:center;}
-#adminRoot th{background:#F0F3F7;font-size:11px;}
-#adminRoot .prog-cell{font-weight:800;}
-#adminRoot .prog-full{color:var(--green);background:#EAFBF1;}
-#adminRoot .prog-zero{color:#B9C2CC;}
-#adminRoot .keycount{font-size:18px;font-weight:900;color:#D4A017;}
-#adminRoot .btn{border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;padding:9px 16px;font-size:13px;}
-#adminRoot .btn-danger{background:var(--red);color:#fff;}
-#adminRoot .btn-primary{background:var(--sky);color:#fff;}
-#adminRoot .btn-sub{background:#F0F3F7;color:var(--navy);}
-#adminRoot .reset-mini{margin-top:4px;border:1px solid var(--bdr);background:#fff;color:var(--tx2);border-radius:6px;cursor:pointer;font-size:12px;padding:2px 8px;}
-#adminRoot .reset-mini:hover{background:#FDEEEF;color:var(--red);border-color:#F5C6CB;}
-#adminRoot .actions{display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;}
-#adminRoot .room-sec{page-break-inside:avoid;margin-bottom:22px;}
-#adminRoot .room-sec h2{font-size:15px;background:var(--navy);color:#fff;padding:6px 10px;border-radius:6px;margin-bottom:10px;}
-#adminRoot .qr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-#adminRoot .qr-card{border:1px solid var(--bdr);border-radius:8px;padding:8px;text-align:center;page-break-inside:avoid;background:#fff;}
-#adminRoot .qr-card canvas{width:100%;height:auto;max-width:120px;}
-#adminRoot .qr-id{font-weight:900;font-size:12px;margin-top:4px;}
-#adminRoot .qr-meta{font-size:10px;color:var(--tx2);}
-#adminRoot .qedit{border-top:1px solid var(--bdr);padding:10px 0;}
-#adminRoot .qedit textarea{width:100%;min-height:52px;padding:6px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit;}
-#adminRoot .qedit input[type=text],#adminRoot .qedit input:not([type]){padding:5px 8px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;font-family:inherit;}
-#adminRoot .guide-step{background:var(--card);border-radius:10px;box-shadow:var(--sh);padding:16px 16px 16px 54px;margin-bottom:14px;position:relative;}
-#adminRoot .guide-step-num{position:absolute;left:14px;top:16px;width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;}
-#adminRoot .guide-step h3{font-size:15px;margin-bottom:6px;color:var(--navy);}
-#adminRoot .guide-step p{font-size:13px;line-height:1.65;color:var(--tx2);margin-bottom:6px;}
-#adminRoot .guide-step p:last-child{margin-bottom:0;}
-#adminRoot .guide-step ul{margin:4px 0 6px 18px;font-size:13px;line-height:1.65;color:var(--tx2);}
-#adminRoot .guide-note{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;border-radius:8px;padding:8px 12px;font-size:12px;margin-top:8px;}
-#adminRoot .guide-warn{background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;border-radius:8px;padding:8px 12px;font-size:12px;margin-top:8px;}
-#adminRoot .guide-link-box{display:flex;gap:8px;align-items:center;background:#F0F3F7;border-radius:8px;padding:10px 12px;margin-top:8px;flex-wrap:wrap;}
-#adminRoot .guide-link-box code{font-size:13px;font-weight:700;color:var(--navy);word-break:break-all;}
-#adminRoot .guide-faq details{border-top:1px solid var(--bdr);padding:10px 0;}
-#adminRoot .guide-faq details:first-child{border-top:none;}
-#adminRoot .guide-faq summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--navy);}
-#adminRoot .guide-faq p{font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.65;}
-#adminRoot .guide-shot{margin-top:10px;}
-#adminRoot .guide-shot img{max-width:100%;border:1px solid var(--bdr);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.1);display:block;}
-#adminRoot .guide-shot-cap{font-size:11px;color:var(--tx2);margin-top:5px;text-align:center;}
-#adminRoot .guide-shot-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
-#adminRoot .guide-shot-row .guide-shot{flex:1;min-width:130px;max-width:200px;}
+/* ===== 관리자 화면 (.admin-scope 스코프) ===== */
+.admin-scope .hd{background:linear-gradient(135deg,var(--navy),var(--navy-g));color:#fff;padding:16px 20px;}
+.admin-scope .hd h1{font-size:19px;}
+.admin-scope .hd .sub{font-size:11px;opacity:.7;margin-top:2px;}
+.admin-scope .tabs{display:flex;gap:2px;background:rgba(255,255,255,.15);border-radius:8px;padding:2px;margin-top:10px;max-width:560px;flex-wrap:wrap;}
+.admin-scope .empty-msg{color:var(--tx2);font-size:13px;padding:20px;text-align:center;}
+.admin-scope select.team-sel{padding:5px 8px;border-radius:6px;border:1px solid var(--bdr);font-family:inherit;font-size:12px;}
+.admin-scope .help-card{border:2px solid #F59E0B;background:#FFFBEB;}
+.admin-scope .help-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #FDE68A;}
+.admin-scope .help-row:first-of-type{border-top:none;}
+.admin-scope .help-title{font-weight:900;color:#92400E;margin-bottom:4px;font-size:14px;}
+.admin-scope .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
+.admin-scope .modal-ov.show{display:flex;}
+.admin-scope .modal-box{background:#fff;border-radius:16px;padding:20px;max-width:760px;width:100%;max-height:85vh;overflow-y:auto;text-align:left;box-shadow:0 16px 48px rgba(0,0,0,.25);}
+.admin-scope .modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:sticky;top:0;background:#fff;padding-bottom:8px;}
+.admin-scope .modal-hd h3{font-size:16px;color:var(--navy);}
+.admin-scope .work-item{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--bdr);}
+.admin-scope .work-item img{max-width:100%;border:1px solid var(--bdr);border-radius:8px;margin-top:6px;background:#fafbfc;}
+.admin-scope .tab{flex:1;padding:8px 6px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:rgba(255,255,255,.7);font-family:inherit;white-space:nowrap;}
+.admin-scope .tab.on{background:#fff;color:var(--navy);}
+.admin-scope .wrap{max-width:1000px;margin:0 auto;padding:18px;}
+.admin-scope .card{background:var(--card);border-radius:10px;box-shadow:var(--sh);padding:16px;margin-bottom:16px;}
+.admin-scope table{width:100%;border-collapse:collapse;font-size:13px;}
+.admin-scope th,.admin-scope td{border:1px solid var(--bdr);padding:8px 6px;text-align:center;}
+.admin-scope th{background:#F0F3F7;font-size:11px;}
+.admin-scope .prog-cell{font-weight:800;}
+.admin-scope .prog-full{color:var(--green);background:#EAFBF1;}
+.admin-scope .prog-zero{color:#B9C2CC;}
+.admin-scope .keycount{font-size:18px;font-weight:900;color:#D4A017;}
+.admin-scope .btn{border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;padding:9px 16px;font-size:13px;}
+.admin-scope .btn-danger{background:var(--red);color:#fff;}
+.admin-scope .btn-primary{background:var(--sky);color:#fff;}
+.admin-scope .btn-sub{background:#F0F3F7;color:var(--navy);}
+.admin-scope .reset-mini{margin-top:4px;border:1px solid var(--bdr);background:#fff;color:var(--tx2);border-radius:6px;cursor:pointer;font-size:12px;padding:2px 8px;}
+.admin-scope .reset-mini:hover{background:#FDEEEF;color:var(--red);border-color:#F5C6CB;}
+.admin-scope .actions{display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;}
+.admin-scope .room-sec{page-break-inside:avoid;margin-bottom:22px;}
+.admin-scope .room-sec h2{font-size:15px;background:var(--navy);color:#fff;padding:6px 10px;border-radius:6px;margin-bottom:10px;}
+.admin-scope .qr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.admin-scope .qr-card{border:1px solid var(--bdr);border-radius:8px;padding:8px;text-align:center;page-break-inside:avoid;background:#fff;}
+.admin-scope .qr-card canvas{width:100%;height:auto;max-width:120px;}
+.admin-scope .qr-id{font-weight:900;font-size:12px;margin-top:4px;}
+.admin-scope .qr-meta{font-size:10px;color:var(--tx2);}
+.admin-scope .qedit{border-top:1px solid var(--bdr);padding:10px 0;}
+.admin-scope .qedit textarea{width:100%;min-height:52px;padding:6px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit;}
+.admin-scope .qedit input[type=text],.admin-scope .qedit input:not([type]){padding:5px 8px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;font-family:inherit;}
+.admin-scope .guide-step{background:var(--card);border-radius:10px;box-shadow:var(--sh);padding:16px 16px 16px 54px;margin-bottom:14px;position:relative;}
+.admin-scope .guide-step-num{position:absolute;left:14px;top:16px;width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.admin-scope .guide-step h3{font-size:15px;margin-bottom:6px;color:var(--navy);}
+.admin-scope .guide-step p{font-size:13px;line-height:1.65;color:var(--tx2);margin-bottom:6px;}
+.admin-scope .guide-step p:last-child{margin-bottom:0;}
+.admin-scope .guide-step ul{margin:4px 0 6px 18px;font-size:13px;line-height:1.65;color:var(--tx2);}
+.admin-scope .guide-note{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;border-radius:8px;padding:8px 12px;font-size:12px;margin-top:8px;}
+.admin-scope .guide-warn{background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;border-radius:8px;padding:8px 12px;font-size:12px;margin-top:8px;}
+.admin-scope .guide-link-box{display:flex;gap:8px;align-items:center;background:#F0F3F7;border-radius:8px;padding:10px 12px;margin-top:8px;flex-wrap:wrap;}
+.admin-scope .guide-link-box code{font-size:13px;font-weight:700;color:var(--navy);word-break:break-all;}
+.admin-scope .guide-faq details{border-top:1px solid var(--bdr);padding:10px 0;}
+.admin-scope .guide-faq details:first-child{border-top:none;}
+.admin-scope .guide-faq summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--navy);}
+.admin-scope .guide-faq p{font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.65;}
+.admin-scope .guide-shot{margin-top:10px;}
+.admin-scope .guide-shot img{max-width:100%;border:1px solid var(--bdr);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.1);display:block;}
+.admin-scope .guide-shot-cap{font-size:11px;color:var(--tx2);margin-top:5px;text-align:center;}
+.admin-scope .guide-shot-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
+.admin-scope .guide-shot-row .guide-shot{flex:1;min-width:130px;max-width:200px;}
 @media print{
-  #adminRoot .hd,#adminRoot .actions,#adminRoot .tabs{display:none!important;}
-  #adminRoot .wrap{padding:0;max-width:none;}
-  #adminRoot .card{box-shadow:none;border:none;padding:0;}
-  #adminRoot .qr-grid{grid-template-columns:repeat(4,1fr);}
-  #adminRoot .qr-id,#adminRoot .no-print{display:none!important;}
+  .admin-scope .hd,.admin-scope .actions,.admin-scope .tabs{display:none!important;}
+  .admin-scope .wrap{padding:0;max-width:none;}
+  .admin-scope .card{box-shadow:none;border:none;padding:0;}
+  .admin-scope .qr-grid{grid-template-columns:repeat(4,1fr);}
+  .admin-scope .qr-id,.admin-scope .no-print{display:none!important;}
 }
 </style>
 </head>
@@ -353,12 +353,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   <div class="wrap" id="app"></div>
 </div>
 
-<div id="adminRoot" style="display:none">
+<div id="adminRoot" class="admin-scope" style="display:none">
   <div class="hd">
     <h1>🔑 방탈출 관리자 페이지</h1>
     <div class="sub">실시간 진행 현황 · QR 코드 인쇄</div>
     <div class="tabs">
-      <button class="tab" id="tabGuide" onclick="showTab('guide')">📖 사용설명서</button>
       <button class="tab on" id="tabDash" onclick="showTab('dash')">📊 대시보드</button>
       <button class="tab" id="tabRoster" onclick="showTab('roster')">🧑‍🤝‍🧑 학생 배정</button>
       <button class="tab" id="tabQuestions" onclick="showTab('questions')">📝 문제 관리</button>
@@ -368,7 +367,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   </div>
   <div class="wrap">
     <div id="globalErr" style="display:none;color:#E0465A;background:#FDEEEF;border:1px solid #F5C6CB;border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;"></div>
-    <div id="viewGuide" style="display:none"></div>
     <div id="viewDash"></div>
     <div id="viewRoster" style="display:none"></div>
     <div id="viewQuestions" style="display:none"></div>
@@ -379,6 +377,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
       <div class="modal-hd"><h3 id="workModalTitle"></h3><button class="btn btn-sub" onclick="closeWorkModal()">닫기</button></div>
       <div id="workModalBody"></div>
     </div>
+  </div>
+</div>
+
+<div id="guideRoot" class="admin-scope" style="display:none">
+  <div class="hd">
+    <h1>📖 방탈출 사용설명서</h1>
+    <div class="sub">비밀번호 없이 누구나 볼 수 있어요</div>
+    <div class="tabs">
+      <button class="tab" onclick="exitPublicGuide()">← 뒤로가기</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <div id="viewGuidePublic"></div>
   </div>
 </div>
 
@@ -677,17 +688,14 @@ function exitAdminMode(){
 }
 function showTab(t){
   currentTab=t;
-  document.getElementById("tabGuide").className="tab"+(t==="guide"?" on":"");
   document.getElementById("tabDash").className="tab"+(t==="dash"?" on":"");
   document.getElementById("tabRoster").className="tab"+(t==="roster"?" on":"");
   document.getElementById("tabQuestions").className="tab"+(t==="questions"?" on":"");
   document.getElementById("tabQr").className="tab"+(t==="qr"?" on":"");
-  document.getElementById("viewGuide").style.display=t==="guide"?"":"none";
   document.getElementById("viewDash").style.display=t==="dash"?"":"none";
   document.getElementById("viewRoster").style.display=t==="roster"?"":"none";
   document.getElementById("viewQuestions").style.display=t==="questions"?"":"none";
   document.getElementById("viewQr").style.display=t==="qr"?"":"none";
-  if(t==="guide")renderGuideTab();
   if(t==="qr")renderQrPage();
   if(t==="questions")renderQuestionsTab();
 }
@@ -714,12 +722,12 @@ function goToMySchoolCode(){
   const el=document.getElementById("newSchoolCodeInput");
   const code=(el&&el.value||"").trim().replace(/[^A-Za-z0-9_-]/g,"").slice(0,40);
   if(!code){alert("코드를 입력해주세요. 영문·숫자로, 다른 학교와 안 겹칠 만한 이름이면 돼요. (예: 선생님 성함, 학교 이름 등)");return;}
-  sessionStorage.setItem("escape_want_guide_tab","1");
+  sessionStorage.setItem("escape_want_public_guide","1");
   location.href=location.origin+location.pathname+"?school="+encodeURIComponent(code);
 }
 function goToRandomSchoolCode(){
   const code=Math.random().toString(36).slice(2,8);
-  sessionStorage.setItem("escape_want_guide_tab","1");
+  sessionStorage.setItem("escape_want_public_guide","1");
   location.href=location.origin+location.pathname+"?school="+encodeURIComponent(code);
 }
 function copyGuideLink(){
@@ -731,7 +739,22 @@ function copyGuideLink(){
     alert("이 브라우저에서는 자동 복사가 안 돼요. 주소를 직접 선택해서 복사해주세요.");
   }
 }
-function renderGuideTab(){
+function showPublicGuide(){
+  document.getElementById("studentRoot").style.display="none";
+  document.getElementById("adminRoot").style.display="none";
+  document.getElementById("guideRoot").style.display="";
+  renderGuideTab("viewGuidePublic");
+}
+function exitPublicGuide(){
+  document.getElementById("guideRoot").style.display="none";
+  if(sessionStorage.getItem("escape_admin_ok")==="1"){
+    enterAdminMode();
+  }else{
+    document.getElementById("studentRoot").style.display="";
+    view="teamPick";renderTeamPick();
+  }
+}
+function renderGuideTab(targetId){
   const schoolId=(typeof SCHOOL_ID!=="undefined")?SCHOOL_ID:"";
   const link=location.origin+location.pathname+(schoolId?("?school="+schoolId):"");
   let h='';
@@ -745,7 +768,7 @@ function renderGuideTab(){
     schoolStepLines.push('🏫 지금 보고 계신 이 주소는 코드 <b>'+escapeHtml(schoolId)+'</b>가 붙은, 선생님만의 주소예요. 다른 선생님이 만든 주소와 명단·문제·진행 기록이 절대 섞이지 않아요.');
     schoolStepLines.push('아래 주소를 <b>즐겨찾기(북마크)</b>해두시고, 다음에 관리자 페이지에 들어오실 때도 항상 이 주소로 들어와주세요. 학생들에게도 이 주소를 그대로 나눠주시면 돼요.');
     schoolStepMedia='<div class="guide-link-box"><span style="font-size:12px;color:var(--tx2);">학생들에게 나눠줄 주소</span><code id="guideLinkTxt">'+escapeHtml(link)+'</code><button class="btn btn-sub" style="padding:5px 10px;font-size:11px" onclick="copyGuideLink()">📋 복사</button></div>'
-      +'<div class="guide-warn">⚠️ 지금 로그인한 관리자 비밀번호는 선생님만 알고 계세요. 학생들에게는 위 주소만 알려주면 되고, 비밀번호까지 알려줄 필요는 없어요.</div>';
+      +'<div class="guide-warn">⚠️ 관리자 비밀번호는 선생님만 알고 계세요. 학생들에게는 위 주소만 알려주면 되고, 비밀번호까지 알려줄 필요는 없어요.</div>';
   }else{
     schoolStepLines.push('⚠️ 지금 보고 계신 이 주소는 <b>학교 코드가 없는 기본 주소</b>예요. 이 상태로 그대로 쓰시면 다른 선생님이 올린 명단·문제·진행 기록과 뒤섞일 수 있어요. 반드시 아래에서 나만의 주소를 새로 만든 뒤 사용해주세요.');
     schoolStepLines.push('코드는 영어·숫자로, 다른 학교와 겹치지 않을 만한 이름이면 돼요. (예: 학교 이름이나 선생님 성함 영문 표기 등)');
@@ -833,7 +856,7 @@ function renderGuideTab(){
     : guideFaq("주소에 코드를 안 붙이고 그냥 써도 되나요?","안 돼요. 코드가 없으면 다른 선생님이 올린 명단·문제·진행 기록과 한곳에 섞여 저장돼요. 반드시 1단계에서 나만의 주소를 만든 뒤 그 주소로만 사용해주세요.");
   h+='</div></div>';
 
-  document.getElementById("viewGuide").innerHTML=h;
+  document.getElementById(targetId||"viewGuidePublic").innerHTML=h;
 }
 function activeRoomIdFor(solved){
   for(const r of ROOMS){
@@ -1197,7 +1220,8 @@ function setHeader(){
 function adminAccordionHtml(){
   return '<details class="admin-acc"><summary>⚙️ 관리자 모드</summary>'
     +'<div class="admin-acc-body"><input class="txt-inp" type="password" id="adminPw" placeholder="비밀번호" style="max-width:160px" onkeydown="if(event.key===\'Enter\')tryAdminLogin()">'
-    +'<button class="btn btn-sub" onclick="tryAdminLogin()">입장</button></div></details>';
+    +'<button class="btn btn-sub" onclick="tryAdminLogin()">입장</button></div></details>'
+    +'<div class="admin-acc" style="margin-top:10px;"><span style="font-size:11px;color:var(--gs-lilac);cursor:pointer;" onclick="showPublicGuide()">📖 사용설명서</span></div>';
 }
 function computeTeamGrades(){
   teamGrades=new Set();
@@ -2145,11 +2169,10 @@ window.addEventListener("resize",()=>{
 /* ===================== 시작 ===================== */
 connectQuestionOverrides();
 connectRoster();
-if(sessionStorage.getItem("escape_admin_ok")==="1"){
-  if(sessionStorage.getItem("escape_want_guide_tab")==="1"){
-    sessionStorage.removeItem("escape_want_guide_tab");
-    currentTab="guide";
-  }
+if(sessionStorage.getItem("escape_want_public_guide")==="1"){
+  sessionStorage.removeItem("escape_want_public_guide");
+  showPublicGuide();
+}else if(sessionStorage.getItem("escape_admin_ok")==="1"){
   enterAdminMode();
 }else if(team){
   loadLocal();
