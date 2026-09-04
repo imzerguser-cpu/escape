@@ -1849,6 +1849,7 @@ function connectQuestionOverrides(){
     QOVERRIDE=snap.val()||{};
     if(view==="home"&&appMode==="student")renderHome();
     if(currentTab==="questions"&&appMode==="admin")renderQuestionsTab();
+    if(currentTab==="qr"&&appMode==="admin")renderQrPage();
   });
 }
 function renderQuestionsTab(){
@@ -2067,15 +2068,16 @@ function confirmBulkQuestionUpdate(){
     renderQuestionsTab();
   }).catch(e=>alert("저장 중 오류가 발생했어요: "+e.message));
 }
-let qrRendered=false;
 function renderQrPage(){
-  if(qrRendered)return;
-  qrRendered=true;
-  let h='<div class="actions"><button class="btn btn-primary" onclick="window.print()">🖨️ 인쇄하기</button></div>';
+  let h='<div class="actions"><button class="btn btn-primary" onclick="window.print()">🖨️ 인쇄하기</button>'
+    +'<button class="btn btn-sub" onclick="renderQrPage()">🔄 QR 생성하기 (문제 관리에서 바뀐 내용 반영)</button></div>';
   ALL_ROOMS.forEach(r=>{
     h+='<div class="room-sec"><h2>'+r.emoji+" "+r.name+' <span class="no-print" style="opacity:.6;font-weight:400;">('+r.id+")</span></h2><div class=\"qr-grid\">";
     QMETA[r.id].forEach(q=>{
-      h+='<div class="qr-card"><canvas id="qr_'+q[0]+'"></canvas><div class="qr-id">'+q[0]+'</div><div class="qr-meta">'+(q[1]?q[1]+"학년 · ":"")+q[2]+"</div><div class=\"qr-meta\">코드: "+CODES[q[0]]+"</div></div>";
+      const ov=(QOVERRIDE[r.id]&&QOVERRIDE[r.id][q[0]])||{};
+      const grade=ov.grade!==undefined?Number(ov.grade):q[1];
+      const unit=ov.unit!==undefined?ov.unit:q[2];
+      h+='<div class="qr-card"><canvas id="qr_'+q[0]+'"></canvas><div class="qr-id">'+q[0]+'</div><div class="qr-meta">'+(grade?grade+"학년 · ":"")+escapeHtml(unit)+"</div><div class=\"qr-meta\">코드: "+CODES[q[0]]+"</div></div>";
     });
     h+="</div></div>";
   });
