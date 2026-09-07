@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { sanitizeKey, makeRosterKey, parseCSV, parseRosterRows, extractSheetId, buildSheetCsvUrl, autoAssignTeams, computeEffectiveGrade } = require('./roster-utils.js');
+const { sanitizeKey, makeRosterKey, parseCSV, parseRosterRows, extractSheetId, buildSheetCsvUrl, autoAssignTeams, autoAssignTeamsByClass, computeEffectiveGrade } = require('./roster-utils.js');
 
 test('sanitizeKey trims whitespace and truncates to 40 chars', () => {
   assert.equal(sanitizeKey('  홍길동  '), '홍길동');
@@ -43,22 +43,32 @@ test('parseCSV skips blank lines', () => {
 
 test('parseRosterRows skips a non-numeric header row', () => {
   const students = parseRosterRows([['학년','이름'],['4','홍길동'],['5','김민준']]);
-  assert.deepEqual(students, [{grade:4,name:'홍길동'},{grade:5,name:'김민준'}]);
+  assert.deepEqual(students, [{grade:4,cls:'',name:'홍길동'},{grade:5,cls:'',name:'김민준'}]);
 });
 
 test('parseRosterRows works without a header row', () => {
   const students = parseRosterRows([['4','홍길동'],['5','김민준']]);
-  assert.deepEqual(students, [{grade:4,name:'홍길동'},{grade:5,name:'김민준'}]);
+  assert.deepEqual(students, [{grade:4,cls:'',name:'홍길동'},{grade:5,cls:'',name:'김민준'}]);
 });
 
 test('parseRosterRows drops rows with an invalid grade or empty name', () => {
   const students = parseRosterRows([['학년','이름'],['4','홍길동'],['x','유령'],['3','']]);
-  assert.deepEqual(students, [{grade:4,name:'홍길동'}]);
+  assert.deepEqual(students, [{grade:4,cls:'',name:'홍길동'}]);
 });
 
 test('parseRosterRows drops grades outside 1-6', () => {
   const students = parseRosterRows([['0','아기'],['7','성인'],['3','정상']]);
-  assert.deepEqual(students, [{grade:3,name:'정상'}]);
+  assert.deepEqual(students, [{grade:3,cls:'',name:'정상'}]);
+});
+
+test('parseRosterRows parses a 3-column 학년,반,이름 sheet when any row has a class value', () => {
+  const students = parseRosterRows([['4','1','홍길동'],['5','2','김민준']]);
+  assert.deepEqual(students, [{grade:4,cls:'1',name:'홍길동'},{grade:5,cls:'2',name:'김민준'}]);
+});
+
+test('parseRosterRows treats a 3-column sheet with a header row the same way', () => {
+  const students = parseRosterRows([['학년','반','이름'],['4','1','홍길동'],['5','2','김민준']]);
+  assert.deepEqual(students, [{grade:4,cls:'1',name:'홍길동'},{grade:5,cls:'2',name:'김민준'}]);
 });
 
 test('extractSheetId reads the id out of a typical edit URL', () => {
@@ -164,4 +174,54 @@ test('computeEffectiveGrade returns the required grade unchanged when the team h
 test('computeEffectiveGrade respects custom grade bounds', () => {
   assert.equal(computeEffectiveGrade(2, new Set([1]), 1, 3), 1);
   assert.equal(computeEffectiveGrade(2, new Set([]), 1, 3), 2);
+});
+
+test('autoAssignTeams passes the class(cls) field through to the result, defaulting to empty string', () => {
+  const result = autoAssignTeams([{name:'a',grade:3,cls:'2'},{name:'b',grade:3}], 2, () => 0);
+  const byName = Object.fromEntries(result.map(s => [s.name, s.cls]));
+  assert.equal(byName.a, '2');
+  assert.equal(byName.b, '');
+});
+
+test('autoAssignTeamsByClass never mixes two different classes into the same team', () => {
+  const students = [];
+  for (let i = 0; i < 12; i++) students.push({ name: 'a'+i, grade: 1+(i%6), cls: '1' });
+  for (let i = 0; i < 12; i++) students.push({ name: 'b'+i, grade: 1+(i%6), cls: '2' });
+  const result = autoAssignTeamsByClass(students, 4, Math.random);
+  const clsOfTeam = {};
+  result.forEach(s => {
+    if (clsOfTeam[s.teamId] == null) clsOfTeam[s.teamId] = s.cls;
+    assert.equal(s.cls, clsOfTeam[s.teamId], 'team ' + s.teamId + ' mixed classes');
+  });
+});
+
+test('autoAssignTeamsByClass splits the requested team count across classes proportionally to headcount', () => {
+  const students = [];
+  for (let i = 0; i < 18; i++) students.push({ name: 'a'+i, grade: 1+(i%6), cls: '1' }); // 18명
+  for (let i = 0; i < 6; i++) students.push({ name: 'b'+i, grade: 1+(i%6), cls: '2' });  // 6명
+  const result = autoAssignTeamsByClass(students, 4, Math.random);
+  const teamsOfCls = { '1': new Set(), '2': new Set() };
+  result.forEach(s => teamsOfCls[s.cls].add(s.teamId));
+  // 18:6 = 3:1 비율이므로 4개 조를 3개/1개로 나누는 것이 자연스럽다
+  assert.equal(teamsOfCls['1'].size, 3);
+  assert.equal(teamsOfCls['2'].size, 1);
+});
+
+test('autoAssignTeamsByClass guarantees every class at least one team, growing the total if there are more classes than requested teams', () => {
+  const students = [
+    {name:'a',grade:3,cls:'1'}, {name:'b',grade:3,cls:'2'}, {name:'c',grade:3,cls:'3'}
+  ];
+  const result = autoAssignTeamsByClass(students, 1, Math.random);
+  const teamIds = new Set(result.map(s => s.teamId));
+  assert.equal(teamIds.size, 3, 'expected one team per class even though 1 was requested');
+});
+
+test('autoAssignTeamsByClass balances grades within each class the same way autoAssignTeams does', () => {
+  const students = [];
+  for (let i = 0; i < 12; i++) students.push({ name: 'n'+i, grade: 1+(i%6), cls: '1' });
+  const result = autoAssignTeamsByClass(students, 3, Math.random);
+  const counts = {1:0,2:0,3:0};
+  result.forEach(s => counts[s.teamId]++);
+  const vals = Object.values(counts);
+  assert.ok(Math.max(...vals) - Math.min(...vals) <= 1, 'counts: ' + JSON.stringify(counts));
 });

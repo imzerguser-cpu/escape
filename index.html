@@ -1437,7 +1437,7 @@ function renderRosterTab(){
   h+='<input type="text" id="sheetUrlInp" placeholder="구글시트 링크 붙여넣기" style="flex:1;min-width:220px;padding:8px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;">';
   h+='<button class="btn btn-primary" onclick="loadFromGoogleSheet()">불러오기</button>';
   h+='</div>';
-  h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:14px;">※ 구글시트는 공유 설정이 "링크가 있는 모든 사용자 - 뷰어"여야 불러올 수 있어요. "학년, 이름" 두 열 형식이어야 해요.</div>';
+  h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:14px;">※ 구글시트는 공유 설정이 "링크가 있는 모든 사용자 - 뷰어"여야 불러올 수 있어요. "학년, 이름" 두 열 형식이면 되고, 반이 있다면 "학년, 반, 이름" 세 열로 만들어도 돼요.</div>';
   h+='<div style="margin-bottom:10px;"><input type="file" id="excelFileInp" accept=".xlsx,.xls" onchange="loadFromExcelFile(this.files[0])"></div>';
   h+='<div id="rosterUploadErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:10px;"></div>';
   h+='<div style="font-size:11px;color:var(--tx2);">🙋 <b>도움이 필요한 학생</b>: 명단을 올리고 조를 편성한 뒤, 아래 명단 표에서 학생의 "도움 필요" 칸에 체크해주세요. 그 학생과 같은 학년 문제가 나왔을 때, 같은 조의 다른 친구들에게 함께 풀어도 좋다는 안내가 자동으로 떠요.</div>';
@@ -1445,13 +1445,18 @@ function renderRosterTab(){
 
   if(parsedRosterPreview){
     h+='<div class="card"><h3 style="margin-bottom:8px;">명단 미리보기 · 확인 후 수정 가능 ('+parsedRosterPreview.length+'명)</h3>';
-    h+='<table><tr><th>학년</th><th>이름</th><th></th></tr>';
+    h+='<table><tr><th>학년</th><th>반</th><th>이름</th><th></th></tr>';
     parsedRosterPreview.forEach((s,i)=>{
       h+='<tr><td><input type="number" min="1" max="6" value="'+s.grade+'" style="width:50px" onchange="updatePreviewRow('+i+',\'grade\',this.value)"></td>';
+      h+='<td><input type="text" value="'+escapeHtml(s.cls||"")+'" placeholder="(선택)" style="width:50px" onchange="updatePreviewRow('+i+',\'cls\',this.value)"></td>';
       h+='<td><input type="text" value="'+escapeHtml(s.name)+'" onchange="updatePreviewRow('+i+',\'name\',this.value)"></td>';
       h+='<td><button class="btn btn-sub" style="padding:4px 8px;font-size:11px" onclick="removePreviewRow('+i+')">삭제</button></td></tr>';
     });
     h+='</table>';
+    h+='<div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;font-size:12px;">';
+    h+='<label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="assignMode" value="grade" checked> 학년 기준으로 고르게 섞기 (반과 상관없이 조 편성)</label>';
+    h+='<label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="assignMode" value="class"> 반별로 나눠서 편성 (같은 반끼리만 조를 이룸)</label>';
+    h+='</div>';
     h+='<div class="actions" style="margin-top:10px;"><button class="btn btn-sub" onclick="addPreviewRow()">+ 행 추가</button><button class="btn btn-primary" onclick="confirmAutoAssign()">이 명단으로 조 편성하기</button></div>';
     h+='</div>';
   }
@@ -1468,7 +1473,7 @@ function renderRosterTab(){
   h+='<div class="card"><b>조별 인원</b> &nbsp; ';
   for(let n=1;n<=teamCount;n++)h+="<span style='margin-right:14px'>"+n+"조 "+(teamCounts[n]||0)+"명</span>";
   h+='</div>';
-  h+='<div class="card"><table><tr><th>이름</th><th>학년</th><th>조 배정</th><th>🙋 도움 필요</th><th>삭제</th></tr>';
+  h+='<div class="card"><table><tr><th>이름</th><th>학년</th><th>반</th><th>조 배정</th><th>🙋 도움 필요</th><th>삭제</th></tr>';
   const groups={};
   keys.forEach(k=>{
     const gid=rosterAll[k].teamId?String(rosterAll[k].teamId):"";
@@ -1479,7 +1484,7 @@ function renderRosterTab(){
   if(groups[""])groupOrder.push("");
   groupOrder.forEach(gid=>{
     const label=gid?gid+"조 ("+groups[gid].length+"명)":"미배정 ("+groups[gid].length+"명)";
-    h+='<tr><td colspan="5" style="background:#F0F3F7;font-weight:800;text-align:left;padding:8px 10px;">'+label+'</td></tr>';
+    h+='<tr><td colspan="6" style="background:#F0F3F7;font-weight:800;text-align:left;padding:8px 10px;">'+label+'</td></tr>';
     groups[gid].sort((a,b)=>{
       const A=rosterAll[a],B=rosterAll[b];
       if(A.grade!==B.grade)return B.grade-A.grade;
@@ -1487,7 +1492,7 @@ function renderRosterTab(){
     }).forEach(key=>{
       const s=rosterAll[key];
       const dataKey=' data-key="'+escapeHtml(key)+'"';
-      h+="<tr><td><b>"+escapeHtml(s.name||key)+"</b></td><td>"+s.grade+"학년</td>";
+      h+="<tr><td><b>"+escapeHtml(s.name||key)+"</b></td><td>"+s.grade+"학년</td><td>"+escapeHtml(s.cls||"-")+"</td>";
       h+='<td><select class="team-sel"'+dataKey+'>';
       h+='<option value=""'+(!s.teamId?" selected":"")+'>미배정</option>';
       for(let n=1;n<=teamCount;n++)h+='<option value="'+n+'"'+(String(s.teamId)===String(n)?" selected":"")+'>'+n+'조</option>';
@@ -1529,7 +1534,7 @@ function removePreviewRow(i){
   renderRosterTab();
 }
 function addPreviewRow(){
-  parsedRosterPreview.push({name:"",grade:1});
+  parsedRosterPreview.push({name:"",grade:1,cls:""});
   renderRosterTab();
 }
 async function loadFromGoogleSheet(){
@@ -1569,18 +1574,24 @@ function confirmAutoAssign(){
   if(!parsedRosterPreview||parsedRosterPreview.length===0)return;
   const raw=Math.floor(Number(document.getElementById("teamCountInp").value))||1;
   const n=Math.min(30,Math.max(1,raw));
-  if(!confirm(parsedRosterPreview.length+"명을 "+n+"개 조로 편성할까요? 기존 명단/조 배정을 덮어씁니다. (방탈출 진행 기록은 그대로 유지됩니다)"))return;
-  const assigned=RosterUtils.autoAssignTeams(parsedRosterPreview,n);
+  const modeEl=document.querySelector('input[name="assignMode"]:checked');
+  const byClass=modeEl&&modeEl.value==="class";
+  const confirmMsg=byClass
+    ? (parsedRosterPreview.length+"명을 반별로 나눠서(목표 "+n+"개 조 기준) 편성할까요? 기존 명단/조 배정을 덮어씁니다. (방탈출 진행 기록은 그대로 유지됩니다)")
+    : (parsedRosterPreview.length+"명을 "+n+"개 조로 편성할까요? 기존 명단/조 배정을 덮어씁니다. (방탈출 진행 기록은 그대로 유지됩니다)");
+  if(!confirm(confirmMsg))return;
+  const assigned=byClass?RosterUtils.autoAssignTeamsByClass(parsedRosterPreview,n):RosterUtils.autoAssignTeams(parsedRosterPreview,n);
+  const actualTeamCount=assigned.reduce((max,s)=>Math.max(max,s.teamId),0)||n;
   const existingKeys=new Set();
   const rosterUpdate={};
   assigned.forEach(s=>{
     const key=RosterUtils.makeRosterKey(s.name,s.grade,existingKeys);
     existingKeys.add(key);
-    rosterUpdate[key]={name:s.name,grade:s.grade,teamId:String(s.teamId),ts:Date.now()};
+    rosterUpdate[key]={name:s.name,grade:s.grade,cls:s.cls||"",teamId:String(s.teamId),ts:Date.now()};
   });
-  dbRoot.update({roster:rosterUpdate,"meta/teamCount":n}).then(()=>{
+  dbRoot.update({roster:rosterUpdate,"meta/teamCount":actualTeamCount}).then(()=>{
     parsedRosterPreview=null;
-    alert("조 편성이 완료되었습니다.");
+    alert(byClass&&actualTeamCount!==n?"조 편성이 완료되었습니다. (반을 나누다 보니 조가 "+actualTeamCount+"개로 늘어났어요)":"조 편성이 완료되었습니다.");
   }).catch(err=>{
     showRosterUploadErr("저장하지 못했어요. 네트워크 연결을 확인하고 다시 시도해주세요. ("+err.message+")");
   });
@@ -2405,6 +2416,17 @@ function renderQuestionsTab(){
   h+='<div class="card" style="font-size:12px;color:var(--tx2)">문제 내용을 고치고 저장하면 학생 화면에 바로 반영됩니다.</div>';
   ALL_ROOMS.forEach(r=>{
     h+='<div class="card"><h3 style="margin-bottom:6px">'+r.emoji+' '+r.name+'</h3>';
+    if(r.id!=="R6"){
+      const curCount=activeCountFor(r.id);
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+        +'<label style="font-size:12px;color:var(--tx2)">이 방 문제 개수</label>'
+        +'<select id="qcnt_'+r.id+'" style="padding:4px 6px;border-radius:6px;border:1px solid var(--bdr);font-size:12px;">';
+      for(let n=4;n<=8;n++)h+='<option value="'+n+'"'+(curCount===n?" selected":"")+'>'+n+'개</option>';
+      h+='</select>'
+        +'<button class="btn btn-sub" style="padding:5px 10px;font-size:11px" onclick="setRoomQuestionCount(\''+r.id+'\',document.getElementById(\'qcnt_'+r.id+'\').value)">적용</button>'
+        +'<span style="font-size:11px;color:var(--tx3)">학년이 낮은 문제부터 그만큼만 켜져요. 특정 문제만 켜고 끄고 싶으면 아래 체크박스를 따로 써주세요.</span>'
+        +'</div>';
+    }
     (QFULL[r.id]||[]).forEach(q=>{
       const [qid,grade,unit,answer,text]=q;
       const ov=(QOVERRIDE[r.id]&&QOVERRIDE[r.id][qid])||{};
@@ -2454,6 +2476,13 @@ function toggleQuestionEnabled(rid,qid,checked){
     }
   }
   db.ref(ESC_ROOT+"/meta/disabledQids/"+qid).set(checked?null:true);
+}
+function setRoomQuestionCount(rid,n){
+  n=Math.max(4,Math.min(8,Number(n)||8));
+  const qids=(QMETA[rid]||[]).map(q=>q[0]); // 학년 오름차순으로 이미 정렬돼 있음 — 낮은 학년부터 n개만 켠다
+  const updates={};
+  qids.forEach((qid,i)=>{ updates["meta/disabledQids/"+qid]=(i<n)?null:true; });
+  dbRoot.update(updates).then(()=>alert(rid+" 방을 문제 "+n+"개로 설정했어요. 학생 화면에 바로 반영됩니다."));
 }
 function saveQuestion(rid,qid,isRandom){
   const grade=Number(document.getElementById("qg_"+qid).value);
