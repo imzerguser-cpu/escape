@@ -784,6 +784,17 @@ function regenerateAdminPw(){
     .then(()=>alert("새 비밀번호로 바뀌었어요. 아래에서 확인해주세요."))
     .catch(e=>alert("저장하지 못했어요: "+e.message));
 }
+function setCustomAdminPw(){
+  if(!SCHOOL_ID){alert("먼저 1단계에서 나만의 주소를 만들어주세요.");return;}
+  const el=document.getElementById("customPwInput");
+  const pw=(el&&el.value||"").trim();
+  if(!pw){alert("사용하실 비밀번호를 입력해주세요.");return;}
+  if(pw.length<4){alert("비밀번호는 4자 이상으로 입력해주세요.");return;}
+  if(!confirm("비밀번호를 입력하신 값으로 바꿀까요? 지금 쓰고 있는 비밀번호는 더 이상 사용할 수 없어요."))return;
+  db.ref(ESC_ROOT+"/meta/adminPw").set(pw)
+    .then(()=>{alert("새 비밀번호로 바뀌었어요.");if(el)el.value="";})
+    .catch(e=>alert("저장하지 못했어요: "+e.message));
+}
 function showPublicGuide(){
   document.getElementById("studentRoot").style.display="none";
   document.getElementById("adminRoot").style.display="none";
@@ -837,7 +848,10 @@ function renderGuideTab(targetId){
     pwStepLines.push('학생들에게는 이 비밀번호를 알려줄 필요가 없어요. 함께 관리하실 다른 선생님에게만 알려주세요.');
     pwStepLines.push('비밀번호를 잊어버려도 걱정하지 마세요 — 1단계에서 만든 이 주소로 다시 들어와서 사용설명서의 이 자리를 보면 언제든 다시 확인할 수 있어요.');
     pwStepMedia='<div class="guide-link-box"><span style="font-size:12px;color:var(--tx2);">우리 학교 관리자 비밀번호</span><code id="guidePwTxt">'+escapeHtml(pwDisplay)+'</code><button class="btn btn-sub" style="padding:5px 10px;font-size:11px" onclick="copyGuidePw()">📋 복사</button></div>'
-      +'<div style="margin-top:8px;font-size:12px;color:var(--tx2);">비밀번호를 새로 바꾸고 싶으면 <button class="btn btn-sub" style="padding:4px 10px;font-size:11px" onclick="regenerateAdminPw()">🔄 새 비밀번호 만들기</button>를 눌러주세요. (바꾸면 이전 비밀번호는 더 이상 안 돼요)</div>';
+      +'<div class="guide-link-box" style="flex-wrap:wrap;margin-top:8px;"><span style="font-size:12px;color:var(--tx2);">원하는 비밀번호로 바꾸기</span>'
+      +'<input type="text" id="customPwInput" placeholder="새 비밀번호 (4자 이상)" style="flex:1;min-width:140px;padding:6px 8px;font-size:13px;border:1px solid var(--bdr);border-radius:6px;">'
+      +'<button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="setCustomAdminPw()">✅ 이 비밀번호로 바꾸기</button></div>'
+      +'<div style="margin-top:8px;font-size:12px;color:var(--tx2);">비밀번호를 정하기 어려우시면 <button class="btn btn-sub" style="padding:4px 10px;font-size:11px" onclick="regenerateAdminPw()">🔄 자동으로 새로 만들기</button>를 눌러주세요. (둘 중 어느 쪽이든 바꾸면 이전 비밀번호는 더 이상 안 돼요)</div>';
   }else{
     pwStepLines.push('1단계에서 나만의 주소를 먼저 만들어주세요. 주소를 만드는 순간 우리 학교만의 관리자 비밀번호가 자동으로 함께 만들어져요.');
     pwStepMedia='<div class="guide-note">아직 나만의 주소가 없어요. 1단계로 올라가서 먼저 만들어주세요.</div>'
