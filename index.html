@@ -2116,7 +2116,6 @@ function renderQuestionsTab(){
       h+='<label style="font-size:12px;color:var(--tx2)">정답</label>';
       h+=isRandom?'<span style="font-size:11px;color:var(--tx2)">(랜덤 출제라 정답 수정 불가)</span>':'<input type="text" id="qa_'+qid+'" value="'+escapeHtml(curAnswer)+'">';
       h+='<button class="btn btn-primary" style="padding:6px 12px;font-size:11px;margin-left:auto" onclick="saveQuestion(\''+r.id+'\',\''+qid+'\','+isRandom+')">💾 저장</button>';
-      h+='<button class="btn btn-sub" style="padding:6px 12px;font-size:11px" onclick="shareQuestion(\''+r.id+'\',\''+qid+'\','+isRandom+')">🌐 공유하기</button>';
       h+='</div>';
       h+='<div style="display:flex;gap:10px;margin-top:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--bdr);padding-top:8px;">';
       h+='<label style="font-size:12px;color:var(--tx2)">그림</label>';
@@ -2141,98 +2140,148 @@ function saveQuestion(rid,qid,isRandom){
   db.ref(ESC_ROOT+"/questions/"+rid+"/"+qid).update(upd).then(()=>alert(qid+" 문제가 저장되었습니다. 학생 화면에 바로 반영됩니다."));
 }
 /* ===================== 문제 공유마당 ===================== */
-/* 모든 학교가 함께 보는 공용 문제 목록. escape_data/shared_questions 에 저장되며,
-   학년·단원·본문·정답만 담아 학생 개인정보와는 완전히 분리된다. */
-let sharedQuestionsCache={};
+/* 모든 학교가 함께 보는 공용 문제 "세트" 목록. escape_data/shared_sets 에 저장되며,
+   문제 여러 개를 한 번에 공유·가져오기 한다. 각 문제는 원래의 qid(예: R1Q4)를 그대로
+   담아두므로, 어느 학교든 방/문제 구조가 똑같아서 같은 qid 자리로 그대로 가져오면 된다.
+   학생 명단·주소 코드와는 완전히 분리된다. */
+let sharedSetsCache={};
 let shareFilterGrade="";
 let shareSearchText="";
-function connectSharedQuestions(){
-  db.ref("escape_data/shared_questions").on("value",snap=>{
-    sharedQuestionsCache=snap.val()||{};
+function connectSharedSets(){
+  db.ref("escape_data/shared_sets").on("value",snap=>{
+    sharedSetsCache=snap.val()||{};
     if(currentTab==="share"&&appMode==="admin")renderShareTab();
   });
 }
-function shareQuestion(rid,qid,isRandom){
-  if(isRandom){alert("랜덤 출제 문제는 아직 공유할 수 없어요.");return;}
-  const grade=Number(document.getElementById("qg_"+qid).value);
-  const unit=document.getElementById("qu_"+qid).value.trim();
-  const text=document.getElementById("qt_"+qid).value.trim();
-  const a=document.getElementById("qa_"+qid);
-  const answer=a?a.value.trim():"";
-  if(!text||!answer){alert("문제 본문과 정답을 먼저 채워주세요.");return;}
-  const label=(prompt("공유할 때 표시할 이름을 적어주세요. (학교 이름, 선생님 별명 등 — 생략 가능. 학생 명단·주소 코드는 절대 공유되지 않아요)","")||"").trim();
-  const ov=(QOVERRIDE[rid]&&QOVERRIDE[rid][qid])||{};
-  const baseQ=(QUESTIONS[rid]||[]).find(x=>x.qid===qid);
-  const img=ov.img!==undefined?ov.img:((baseQ&&baseQ.img)||"");
-  const entry={grade,unit,text,answer,img:img||null,label:label||"익명 선생님",ts:Date.now()};
-  db.ref("escape_data/shared_questions").push(entry).then(()=>alert("문제가 공유마당에 올라갔어요! 다른 선생님들이 '🌐 문제 공유마당' 탭에서 보고 가져갈 수 있어요."));
-}
-function slotsForGrade(grade){
-  const out=[];
+function buildCurrentQuestionsSnapshot(overrideData){
+  const OV=overrideData||QOVERRIDE;
+  const out={};
   ROOMS.forEach(r=>{
-    QMETA[r.id].forEach(q=>{
-      const ov=(QOVERRIDE[r.id]&&QOVERRIDE[r.id][q[0]])||{};
-      const g=ov.grade!==undefined?Number(ov.grade):q[1];
-      if(g===grade)out.push({rid:r.id,qid:q[0],label:r.emoji+" "+r.name+" · "+q[0]});
+    (QFULL[r.id]||[]).forEach(q=>{
+      const [qid,grade,unit,answer,text]=q;
+      if(answer===null)return; // 랜덤 출제 문제는 정답이 고정돼 있지 않아 공유 대상에서 제외
+      const ov=(OV[r.id]&&OV[r.id][qid])||{};
+      const baseQ=(QUESTIONS[r.id]||[]).find(x=>x.qid===qid);
+      const curImg=ov.img!==undefined?ov.img:((baseQ&&baseQ.img)||"");
+      out[qid]={
+        grade:ov.grade!==undefined?Number(ov.grade):grade,
+        unit:ov.unit!==undefined?ov.unit:unit,
+        text:ov.text!==undefined?ov.text:text,
+        answer:ov.answer!==undefined?ov.answer:answer,
+        img:curImg||null
+      };
     });
   });
   return out;
 }
-function toggleImportPicker(entryId){
-  const el=document.getElementById("importPicker_"+entryId);
-  if(el)el.style.display=el.style.display==="flex"?"none":"flex";
+function gradesIn(questions){
+  const g={};
+  Object.values(questions).forEach(q=>{if(q.grade)g[q.grade]=true;});
+  return Object.keys(g).map(Number).sort((a,b)=>a-b);
 }
-function confirmImportSharedQuestion(entryId){
-  const entry=sharedQuestionsCache[entryId];
-  const sel=document.getElementById("importTarget_"+entryId);
-  if(!entry||!sel||!sel.value)return;
-  const [rid,qid]=sel.value.split("|");
-  if(!confirm(qid+" 자리에 이 문제를 덮어씌울까요? 지금 등록된 문제 내용은 사라지고, 학생 화면에 바로 반영돼요."))return;
-  const upd={grade:entry.grade,unit:entry.unit,text:entry.text,answer:entry.answer};
-  if(entry.img)upd.img=entry.img;
-  db.ref(ESC_ROOT+"/questions/"+rid+"/"+qid).update(upd).then(()=>alert(qid+"에 문제를 가져왔어요. 학생 화면에 바로 반영됩니다."));
+function pushSharedSet(questions){
+  const count=Object.keys(questions).length;
+  if(count===0){alert("공유할 문제를 찾지 못했어요.");return;}
+  const subject=(document.getElementById("shareSubjectInp").value||"").trim();
+  if(!subject){alert("과목을 입력해주세요. (예: 수학, 영어 등)");return;}
+  const title=(document.getElementById("shareTitleInp").value||"").trim();
+  const label=(prompt("공유할 때 표시할 이름을 적어주세요. (학교 이름, 선생님 별명 등 — 생략 가능. 학생 명단·주소 코드는 절대 공유되지 않아요)","")||"").trim();
+  const entry={subject,title:title||subject,label:label||"익명 선생님",grades:gradesIn(questions),questions,count,ts:Date.now()};
+  db.ref("escape_data/shared_sets").push(entry).then(()=>{
+    alert("문제 "+count+"개를 한 번에 공유했어요! 다른 선생님들이 '🌐 문제 공유마당' 탭에서 보고 통째로 가져갈 수 있어요.");
+    const ti=document.getElementById("shareTitleInp");if(ti)ti.value="";
+  }).catch(e=>alert("공유하지 못했어요: "+e.message));
+}
+function shareCurrentQuestionsBulk(){
+  const subject=(document.getElementById("shareSubjectInp").value||"").trim();
+  if(!subject){alert("과목을 입력해주세요. (예: 수학, 영어 등)");return;}
+  // 방금 저장한 내용이 아직 로컬 QOVERRIDE에 반영되지 않았을 수 있어(실시간 리스너 반영 전),
+  // 공유 직전에 Firebase에서 최신 값을 다시 읽어와 스냅샷을 만든다.
+  db.ref(ESC_ROOT+"/questions").once("value").then(snap=>{
+    pushSharedSet(buildCurrentQuestionsSnapshot(snap.val()||{}));
+  }).catch(e=>alert("문제를 불러오지 못했어요: "+e.message));
+}
+async function shareViaPdfBulk(file){
+  if(!file)return;
+  const subject=(document.getElementById("shareSubjectInp").value||"").trim();
+  if(!subject){alert("과목을 먼저 입력해주세요. (예: 수학, 영어 등)");return;}
+  const errEl=document.getElementById("sharePdfErr");
+  if(errEl)errEl.style.display="none";
+  try{
+    if(typeof pdfjsLib==="undefined")throw new Error("PDF 라이브러리를 불러오지 못했어요. 새로고침 후 다시 시도해주세요.");
+    const text=await extractPdfText(file);
+    const parsed=parseQuestionsPdfText(text);
+    if(parsed.length===0)throw new Error("PDF에서 문제를 찾지 못했어요. '문제 관리' 화면을 인쇄해서 만든 PDF가 맞는지 확인해주세요.");
+    const questions={};
+    parsed.forEach(p=>{
+      if(p.answer==null)return; // 랜덤 출제 문제는 제외
+      questions[p.qid]={grade:p.grade,unit:p.unit,text:p.text,answer:p.answer,img:null};
+    });
+    pushSharedSet(questions);
+  }catch(e){
+    if(errEl){errEl.style.display="";errEl.textContent=e.message||String(e);}
+  }
+}
+function importSharedSet(setId){
+  const set=sharedSetsCache[setId];
+  if(!set||!set.questions)return;
+  const qids=Object.keys(set.questions);
+  if(!confirm("'"+(set.title||set.subject)+"' 세트의 문제 "+qids.length+"개를 우리 학교 문제로 한 번에 가져올까요?\n같은 자리의 기존 문제 내용은 사라지고, 학생 화면에 바로 반영돼요."))return;
+  const updates={};
+  qids.forEach(qid=>{
+    const rid=qid.slice(0,2);
+    const q=set.questions[qid];
+    updates["questions/"+rid+"/"+qid+"/grade"]=q.grade;
+    updates["questions/"+rid+"/"+qid+"/unit"]=q.unit;
+    updates["questions/"+rid+"/"+qid+"/text"]=q.text;
+    updates["questions/"+rid+"/"+qid+"/answer"]=q.answer;
+    if(q.img)updates["questions/"+rid+"/"+qid+"/img"]=q.img;
+  });
+  dbRoot.update(updates).then(()=>alert(qids.length+"개 문제를 가져왔어요. 학생 화면에 바로 반영됩니다."))
+    .catch(e=>alert("가져오기에 실패했어요: "+e.message));
 }
 function renderShareTab(){
-  let h='<div class="card"><h3 style="margin-bottom:6px;">🌐 문제 공유마당</h3>';
-  h+='<div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">다른 학교 선생님들이 올린 문제를 학년별로 둘러보고 우리 학교 문제로 가져올 수 있어요. "문제 관리" 탭에서 각 문제 옆의 <b>🌐 공유하기</b> 버튼을 누르면 여기에 올라가요. (학생 명단이나 주소 코드는 절대 함께 공유되지 않아요)</div>';
+  let h='<div class="card"><h3 style="margin-bottom:6px;">🌐 문제 공유하기</h3>';
+  h+='<div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">우리 학교 문제를 한 번에 공유해요. 먼저 과목(필수)과 제목(생략 가능)을 적어주세요. (학생 명단이나 주소 코드는 절대 함께 공유되지 않아요)</div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">';
+  h+='<input type="text" id="shareSubjectInp" placeholder="과목 (예: 수학, 영어)" style="min-width:120px;padding:6px 8px;border-radius:6px;border:1px solid var(--bdr);">';
+  h+='<input type="text" id="shareTitleInp" placeholder="제목 (생략 가능, 예: 3학년 수학 문제 모음)" style="flex:1;min-width:180px;padding:6px 8px;border-radius:6px;border:1px solid var(--bdr);">';
+  h+='</div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">';
+  h+='<button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="shareCurrentQuestionsBulk()">⚡ 지금 등록된 문제 전체 한 번에 공유하기</button>';
+  h+='<label class="btn btn-sub" style="padding:8px 14px;font-size:12px;cursor:pointer;">📄 PDF로 일괄 공유하기<input type="file" accept="application/pdf" style="display:none" onchange="shareViaPdfBulk(this.files[0])"></label>';
+  h+='</div>';
+  h+='<div id="sharePdfErr" style="display:none;color:var(--red);font-size:12px;margin-top:8px;"></div>';
+  h+='</div>';
+
+  h+='<div class="card"><h3 style="margin-bottom:6px;">🌐 문제 공유마당 둘러보기</h3>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">';
   h+='<select id="shareGradeSel" onchange="shareFilterGrade=this.value;renderShareTab();" style="padding:6px 8px;border-radius:6px;border:1px solid var(--bdr);">';
   h+='<option value=""'+(shareFilterGrade===""?" selected":"")+'>전체 학년</option>';
   for(let g=1;g<=6;g++)h+='<option value="'+g+'"'+(String(shareFilterGrade)===String(g)?" selected":"")+'>'+g+'학년</option>';
   h+='</select>';
-  h+='<input type="text" id="shareSearchInp" value="'+escapeHtml(shareSearchText)+'" placeholder="단원·문제 내용 검색" style="flex:1;min-width:160px;padding:6px 8px;border-radius:6px;border:1px solid var(--bdr);" oninput="shareSearchText=this.value;renderShareTab();">';
+  h+='<input type="text" id="shareSearchInp" value="'+escapeHtml(shareSearchText)+'" placeholder="과목·제목 검색" style="flex:1;min-width:160px;padding:6px 8px;border-radius:6px;border:1px solid var(--bdr);" oninput="shareSearchText=this.value;renderShareTab();">';
   h+='</div></div>';
 
-  const entries=Object.keys(sharedQuestionsCache).map(id=>Object.assign({id},sharedQuestionsCache[id]))
-    .filter(e=>!shareFilterGrade||String(e.grade)===String(shareFilterGrade))
-    .filter(e=>!shareSearchText||((e.unit||"")+" "+(e.text||"")).includes(shareSearchText))
+  const sets=Object.keys(sharedSetsCache).map(id=>Object.assign({id},sharedSetsCache[id]))
+    .filter(e=>!shareFilterGrade||(e.grades||[]).map(String).includes(String(shareFilterGrade)))
+    .filter(e=>!shareSearchText||((e.subject||"")+" "+(e.title||"")).includes(shareSearchText))
     .sort((a,b)=>(b.ts||0)-(a.ts||0));
 
-  if(entries.length===0){
-    h+='<div class="card"><div class="empty-msg">아직 조건에 맞는 공유 문제가 없어요.</div></div>';
+  if(sets.length===0){
+    h+='<div class="card"><div class="empty-msg">아직 조건에 맞는 공유 문제 세트가 없어요.</div></div>';
     document.getElementById("viewShare").innerHTML=h;
     return;
   }
-  entries.forEach(e=>{
-    const slots=slotsForGrade(Number(e.grade));
+  sets.forEach(e=>{
+    const gradeLabel=(e.grades&&e.grades.length)?e.grades.join(",")+"학년":"학년 정보 없음";
     h+='<div class="card">';
-    h+='<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;"><span class="badge b-grade" style="display:inline-block;padding:2px 8px;border-radius:6px;background:#EAF2FB;font-size:12px;font-weight:800;">'+(e.grade?e.grade+"학년":"공통")+'</span>'
-      +'<b style="font-size:13px;">'+escapeHtml(e.unit||"")+'</b>'
+    h+='<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;">'
+      +'<span style="display:inline-block;padding:2px 8px;border-radius:6px;background:#EAF2FB;font-size:12px;font-weight:800;">'+escapeHtml(e.subject||"")+'</span>'
+      +'<b style="font-size:13px;">'+escapeHtml(e.title||e.subject||"")+'</b>'
       +'<span style="font-size:11px;color:var(--tx3);margin-left:auto;">'+escapeHtml(e.label||"익명 선생님")+'</span></div>';
-    h+='<div style="font-size:13px;margin-top:8px;line-height:1.6;">'+escapeHtml(e.text||"")+'</div>';
-    if(e.img)h+='<div style="max-width:160px;margin-top:8px;">'+e.img+'</div>';
-    h+='<div style="font-size:12px;color:var(--tx2);margin-top:8px;">정답: <b>'+escapeHtml(e.answer||"")+'</b></div>';
-    if(slots.length===0){
-      h+='<div style="font-size:11px;color:var(--tx3);margin-top:8px;">이 학년에 해당하는 문제 자리가 우리 학교 방에는 없어요.</div>';
-    }else{
-      h+='<div class="actions" style="margin-top:8px;"><button class="btn btn-sub" style="padding:5px 12px;font-size:11px" onclick="toggleImportPicker(\''+e.id+'\')">⬇️ 가져오기</button></div>';
-      h+='<div id="importPicker_'+e.id+'" style="display:none;margin-top:8px;gap:8px;align-items:center;flex-wrap:wrap;">';
-      h+='<select id="importTarget_'+e.id+'" style="padding:5px 8px;border-radius:6px;border:1px solid var(--bdr);font-size:12px;">';
-      slots.forEach(s=>{h+='<option value="'+s.rid+'|'+s.qid+'">'+escapeHtml(s.label)+'</option>';});
-      h+='</select>';
-      h+='<button class="btn btn-primary" style="padding:5px 12px;font-size:11px" onclick="confirmImportSharedQuestion(\''+e.id+'\')">이 자리에 가져오기</button>';
-      h+='</div>';
-    }
+    h+='<div style="font-size:12px;color:var(--tx2);margin-top:6px;">'+gradeLabel+' · 문제 '+(e.count||Object.keys(e.questions||{}).length)+'개</div>';
+    h+='<div class="actions" style="margin-top:8px;"><button class="btn btn-sub" style="padding:5px 12px;font-size:11px" onclick="importSharedSet(\''+e.id+'\')">⬇️ 이 세트 통째로 가져오기</button></div>';
     h+='</div>';
   });
   document.getElementById("viewShare").innerHTML=h;
@@ -2424,7 +2473,7 @@ window.addEventListener("resize",()=>{
 connectQuestionOverrides();
 connectRoster();
 connectAdminPw();
-connectSharedQuestions();
+connectSharedSets();
 if(sessionStorage.getItem("escape_want_public_guide")==="1"){
   sessionStorage.removeItem("escape_want_public_guide");
   showPublicGuide();
