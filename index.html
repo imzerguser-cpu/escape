@@ -412,8 +412,8 @@ const db=firebase.database();
 if(typeof pdfjsLib!=="undefined"){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";}
 
 /* ===================== 문제 데이터 ===================== */
-/* 방(교실)은 최대 10개까지 미리 준비돼 있고, 관리자가 "교실 개수" 설정으로 이 중
-   앞에서부터 몇 개를 쓸지 고른다(roomCount). R6은 협동미션 전용 id라 건너뛴다 —
+/* 방(교실)은 최대 10개까지 미리 준비돼 있고, 관리자가 "교실 선택"에서 체크박스로
+   원하는 방을 직접 고른다(activeRoomIds). R6은 협동미션 전용 id라 건너뛴다 —
    기존에 이미 R6Q1로 데이터가 쌓인 학교(마동초 등)의 진행기록과 충돌하지 않기 위함. */
 const ROOM_TEMPLATES=[
  {id:"R1",emoji:"📚",name:"도서관",photo:"classroom_library_photo.png"},
@@ -453,18 +453,19 @@ const ROOM_PHOTO_GALLERY=[
  {file:"rooms/grade5_classroom.png",label:"5학년 교실",emoji:"5️⃣"},
  {file:"rooms/grade6_classroom.png",label:"6학년 교실",emoji:"🎓"},
 ];
-let roomCount=5;
+const DEFAULT_ROOM_IDS=["R1","R2","R3","R4","R5"];
+let activeRoomIds=DEFAULT_ROOM_IDS.slice();
 let roomCustom={}; // 관리자가 바꾼 방별 이름·이모지·사진 — {R1:{name,emoji,photo}, ...}
 function roomInfo(t){
   const c=roomCustom[t.id];
   return c?Object.assign({},t,c):t;
 }
-let ROOMS=ROOM_TEMPLATES.slice(0,roomCount).map(roomInfo);
+let ROOMS=ROOM_TEMPLATES.filter(t=>activeRoomIds.includes(t.id)).map(roomInfo);
 const FINAL_ROOM={id:"R6",emoji:"🤸",name:"협동 미션(강당)",photo:"classroom_gym_photo.png"};
 let ALL_ROOMS=ROOMS.concat([FINAL_ROOM]);
-function applyRoomCount(n){
-  roomCount=Math.max(5,Math.min(10,Number(n)||5));
-  ROOMS=ROOM_TEMPLATES.slice(0,roomCount).map(roomInfo);
+function applyRoomSelection(ids){
+  activeRoomIds=(ids&&ids.length)?ids:DEFAULT_ROOM_IDS.slice();
+  ROOMS=ROOM_TEMPLATES.filter(t=>activeRoomIds.includes(t.id)).map(roomInfo);
   ALL_ROOMS=ROOMS.concat([FINAL_ROOM]);
 }
 
@@ -1164,11 +1165,15 @@ function activeRoomIdFor(solved){
   }
   return null;
 }
-function saveRoomCount(){
-  const v=Number(document.getElementById("roomCountSel").value);
-  const updates={"meta/roomCount":v};
-  // 방 개수를 줄여서 "협동미션에 필요한 방 개수"보다 적어지면 완료가 불가능해지므로 함께 낮춘다
-  if(requiredRooms>v)updates["meta/requiredRooms"]=v;
+function saveRoomSelection(){
+  const ids=ROOM_TEMPLATES.map(t=>t.id).filter(id=>{
+    const el=document.getElementById("roomChk_"+id);
+    return el&&el.checked;
+  });
+  if(ids.length===0){alert("최소 1개의 방은 선택해야 해요.");return;}
+  const updates={"meta/activeRoomIds":ids};
+  // 선택한 방 개수가 "협동미션에 필요한 방 개수"보다 적어지면 완료가 불가능해지므로 함께 낮춘다
+  if(requiredRooms>ids.length)updates["meta/requiredRooms"]=ids.length;
   dbRoot.update(updates).then(()=>alert("설정이 저장되었습니다. 학생 화면에 바로 반영됩니다."));
 }
 function saveRequiredRooms(){
@@ -1201,9 +1206,11 @@ function renderRoomDecorHtml(){
     h+='</div>';
     h+='<div id="roomGallery_'+r.id+'" style="display:none;flex-wrap:wrap;gap:8px;padding:4px 0 10px 0;">';
     ROOM_PHOTO_GALLERY.forEach(g=>{
-      h+='<div style="width:84px;text-align:center;cursor:pointer;" onclick="pickRoomTheme(\''+r.id+'\',\''+g.file+'\',\''+g.label+'\',\''+g.emoji+'\')">'
-        +'<img src="assets/'+g.file+'" alt="" style="width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--bdr);">'
-        +'<div style="font-size:10px;color:var(--tx2);margin-top:2px;">'+g.emoji+' '+escapeHtml(g.label)+'</div></div>';
+      const isSelected=g.file===r.photo;
+      h+='<div style="width:84px;text-align:center;cursor:pointer;position:relative;" onclick="pickRoomTheme(\''+r.id+'\',\''+g.file+'\',\''+g.label+'\',\''+g.emoji+'\')">'
+        +'<img src="assets/'+g.file+'" alt="" style="width:80px;height:60px;object-fit:cover;border-radius:6px;'+(isSelected?"border:3px solid var(--sky);box-shadow:0 0 0 2px rgba(59,107,165,.25);":"border:1px solid var(--bdr);opacity:.85;")+'">'
+        +(isSelected?'<div style="position:absolute;top:2px;right:2px;background:var(--sky);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:18px;">✓</div>':'')
+        +'<div style="font-size:10px;margin-top:2px;'+(isSelected?"color:var(--sky);font-weight:800;":"color:var(--tx2);")+'">'+g.emoji+' '+escapeHtml(g.label)+(isSelected?' · 선택됨':'')+'</div></div>';
     });
     h+='</div>';
   });
@@ -1214,13 +1221,18 @@ function renderDash(all){
   lastAllData=all||{};
   const data=lastAllData;
 
-  let reqHtml='<div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-    +'<b>교실(방) 개수</b>'
-    +'<select id="roomCountSel" style="padding:5px 8px;border-radius:6px;border:1px solid var(--bdr);">';
-  for(let i=5;i<=10;i++)reqHtml+='<option value="'+i+'"'+(roomCount===i?" selected":"")+'>'+i+'개</option>';
-  reqHtml+='</select>'
-    +'<button class="btn btn-primary" style="padding:6px 14px;font-size:12px" onclick="saveRoomCount()">저장</button>'
-    +'<span style="font-size:11px;color:var(--tx2)">5개를 넘는 방은 예시 문제로 미리 채워져 있어요 — "문제 관리" 탭에서 내용을 자유롭게 고쳐 쓰세요.</span>'
+  let reqHtml='<div class="card">'
+    +'<b>교실(방) 선택</b>'
+    +'<div style="font-size:11px;color:var(--tx2);margin:6px 0 10px;">사용할 방을 체크해주세요. 기본 5개 외의 방은 예시 문제로 미리 채워져 있어요 — "문제 관리" 탭에서 내용을 자유롭게 고쳐 쓰세요.</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+  ROOM_TEMPLATES.forEach(t=>{
+    const info=roomInfo(t);
+    const checked=activeRoomIds.includes(t.id);
+    reqHtml+='<label style="display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--bdr);border-radius:8px;cursor:pointer;background:'+(checked?"#EAF2FB":"#fff")+';font-size:12px;">'
+      +'<input type="checkbox" id="roomChk_'+t.id+'"'+(checked?" checked":"")+'> '+info.emoji+' '+escapeHtml(info.name)+' <span style="font-size:10px;color:var(--tx3)">('+t.id+')</span></label>';
+  });
+  reqHtml+='</div>'
+    +'<button class="btn btn-primary" style="padding:6px 14px;font-size:12px;margin-top:10px" onclick="saveRoomSelection()">저장</button>'
     +'</div>';
   reqHtml+='<div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
     +'<b>협동미션 도전에 필요한 방 개수</b>'
@@ -2319,8 +2331,16 @@ function connectRoster(){
     }
     if(appMode==="admin"&&currentTab==="dash")renderDash(lastAllData);
   });
-  db.ref(ESC_ROOT+"/meta/roomCount").on("value",snap=>{
-    applyRoomCount(snap.val()||5);
+  db.ref(ESC_ROOT+"/meta/activeRoomIds").on("value",snap=>{
+    if(!snap.exists()){
+      // 예전 "교실 개수"(숫자) 설정이 남아있으면 방 목록으로 한 번만 옮겨준다(없으면 기본 5개)
+      db.ref(ESC_ROOT+"/meta/roomCount").once("value").then(cSnap=>{
+        const oldCount=cSnap.val();
+        if(oldCount)db.ref(ESC_ROOT+"/meta/activeRoomIds").set(ROOM_TEMPLATES.slice(0,oldCount).map(t=>t.id));
+      });
+      return; // oldCount가 없으면 applyRoomSelection(null)의 기본값(5개)이 이미 적용된 상태
+    }
+    applyRoomSelection(snap.val());
     if(appMode==="student"){
       if(view==="home")renderHome();
       else if(view==="roomDetail")renderRoomDetail(currentRoomDetailId);
@@ -2341,7 +2361,7 @@ function connectRoster(){
   });
   db.ref(ESC_ROOT+"/meta/roomCustom").on("value",snap=>{
     roomCustom=snap.val()||{};
-    applyRoomCount(roomCount); // ROOMS/ALL_ROOMS를 바뀐 이름·이모지·사진으로 다시 계산
+    applyRoomSelection(activeRoomIds); // ROOMS/ALL_ROOMS를 바뀐 이름·이모지·사진으로 다시 계산
     if(appMode==="student"){
       if(view==="home")renderHome();
       else if(view==="roomDetail")renderRoomDetail(currentRoomDetailId);
