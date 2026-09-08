@@ -2710,7 +2710,14 @@ function clearQuestionImage(rid,qid){
    순서로 나옴)를 읽어서 QFULL/QOVERRIDE 대비 달라진 문제만 찾아 미리보기로 보여준다. */
 async function extractPdfText(file){
   const buf=await file.arrayBuffer();
-  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  // cMapUrl/cMapPacked가 없으면, 외부 CMap을 참조하는 폰트(한글 CID 폰트 등)를 쓴 PDF에서
+  // 글자가 아예 추출되지 않는다 — 브라우저로 인쇄한 PDF는 문제없이 되지만, 한글/한컴/AI 도구 등
+  // 다른 프로그램으로 만든 PDF는 이 옵션이 없으면 텍스트가 통째로 빈 문자열로 나온다.
+  const pdf=await pdfjsLib.getDocument({
+    data:buf,
+    cMapUrl:"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
+    cMapPacked:true
+  }).promise;
   let fullText="";
   for(let p=1;p<=pdf.numPages;p++){
     const page=await pdf.getPage(p);
