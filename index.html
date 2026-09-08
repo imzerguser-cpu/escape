@@ -1173,7 +1173,8 @@ function renderGuideTab(targetId){
     "우리 학교가 만든 문제를 다른 학교 선생님과 나누거나, 반대로 다른 학교가 공유한 문제를 통째로 가져와 쓸 수 있는 기능이에요. 꼭 쓰지 않아도 되고, 필요할 때만 이용하시면 돼요.",
     [
     "위쪽 탭에서 <b>문제 공유마당</b>을 누르면 위쪽에는 공유하기, 아래쪽에는 다른 선생님들이 올린 문제 목록이 나와요.",
-    "과목(필수)과 제목(생략 가능)을 적은 뒤 <b>지금 등록된 문제 전체 한 번에 공유하기</b>를 누르면, 지금 우리 학교에 저장된 문제가 통째로 공유마당에 올라가요. PDF 파일로도 바로 공유할 수 있어요.",
+    "과목(필수)과 제목(생략 가능)을 적은 뒤 <b>지금 등록된 문제 전체 한 번에 공유하기</b>를 누르면, 지금 우리 학교에 저장된 문제가 통째로 공유마당에 올라가요.",
+    "따로 만든 표나 파일로 공유하고 싶다면 <b>엑셀로 공유하기</b> 또는 <b>구글시트로 공유하기</b>를 이용해주세요 (3단계의 엑셀 예시와 같은 형식이에요). PDF로도 공유할 수 있지만, 3단계와 마찬가지로 PDF는 만든 프로그램에 따라 인식이 안 될 수 있어 엑셀/구글시트를 추천해요.",
     "학생 명단이나 우리 학교 주소 코드, 비밀번호는 절대 함께 공유되지 않아요 — 오직 문제 내용만 올라가요.",
     "다른 학교가 올린 세트가 마음에 들면 학년·검색으로 찾은 뒤 <b>이 세트 통째로 가져오기</b>를 누르세요. 같은 자리(qid)의 우리 학교 문제가 그 내용으로 바뀌고, 학생 화면에 바로 반영돼요."
     ],
@@ -2611,10 +2612,67 @@ function shareCurrentQuestionsBulk(){
     pushSharedSet(buildCurrentQuestionsSnapshot(snap.val()||{}));
   }).catch(e=>alert("문제를 불러오지 못했어요: "+e.message));
 }
+/* parsed({qid,grade,unit,text,answer}) 배열 → 공유용 questions 맵. 랜덤 출제 문제는 정답이
+   고정돼 있지 않아 공유 대상에서 뺀다 (버튼으로 만들어 공유하든 PDF로 만들어 공유하든 공통 로직). */
+function buildShareQuestionsMap(parsed){
+  const questions={};
+  parsed.forEach(p=>{
+    if(p.answer==null)return;
+    questions[p.qid]={grade:p.grade,unit:p.unit,text:p.text,answer:p.answer,img:null};
+  });
+  return questions;
+}
+function requireShareSubject(){
+  const subject=(document.getElementById("shareSubjectInp").value||"").trim();
+  if(!subject)alert("과목을 먼저 입력해주세요. (예: 수학, 영어 등)");
+  return subject;
+}
+function showShareFileErr(msg){
+  const el=document.getElementById("sharePdfErr");
+  if(el){el.style.display="";el.textContent=msg;}
+}
+function shareViaExcelBulk(file){
+  if(!file)return;
+  if(!requireShareSubject())return;
+  const errEl=document.getElementById("sharePdfErr");
+  if(errEl)errEl.style.display="none";
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array"});
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(sheet,{header:1}).map(r=>r.map(c=>(c===undefined||c===null)?"":String(c)));
+      const parsed=parseQuestionsSheetRows(rows);
+      if(parsed.length===0){showShareFileErr("표에서 문제를 찾지 못했어요. '문제번호, 학년, 단원, 문제, 정답' 순서인지 확인해주세요.");return;}
+      pushSharedSet(buildShareQuestionsMap(parsed));
+    }catch(err){
+      showShareFileErr("엑셀 파일을 읽지 못했어요.");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+async function shareViaSheetBulk(){
+  if(!requireShareSubject())return;
+  const url=(document.getElementById("shareSheetUrlInp").value||"").trim();
+  const id=RosterUtils.extractSheetId(url);
+  const errEl=document.getElementById("sharePdfErr");
+  if(errEl)errEl.style.display="none";
+  if(!id){showShareFileErr("올바른 구글시트 링크가 아니에요.");return;}
+  try{
+    const res=await fetch(RosterUtils.buildSheetCsvUrl(id));
+    if(!res.ok)throw new Error("fetch failed");
+    const text=await res.text();
+    const rows=RosterUtils.parseCSV(text);
+    const parsed=parseQuestionsSheetRows(rows);
+    if(parsed.length===0){showShareFileErr("표에서 문제를 찾지 못했어요. '문제번호, 학년, 단원, 문제, 정답' 순서인지 확인해주세요.");return;}
+    pushSharedSet(buildShareQuestionsMap(parsed));
+  }catch(e){
+    showShareFileErr("시트를 불러오지 못했어요. 공유 설정이 '링크가 있는 모든 사용자 - 뷰어'인지 확인해주세요.");
+  }
+}
 async function shareViaPdfBulk(file){
   if(!file)return;
-  const subject=(document.getElementById("shareSubjectInp").value||"").trim();
-  if(!subject){alert("과목을 먼저 입력해주세요. (예: 수학, 영어 등)");return;}
+  if(!requireShareSubject())return;
   const errEl=document.getElementById("sharePdfErr");
   if(errEl)errEl.style.display="none";
   try{
@@ -2622,12 +2680,7 @@ async function shareViaPdfBulk(file){
     const text=await extractPdfText(file);
     const parsed=parseQuestionsPdfText(text);
     if(parsed.length===0)throw new Error("PDF에서 문제를 찾지 못했어요. '문제 관리' 화면을 인쇄해서 만든 PDF가 맞는지 확인해주세요.");
-    const questions={};
-    parsed.forEach(p=>{
-      if(p.answer==null)return; // 랜덤 출제 문제는 제외
-      questions[p.qid]={grade:p.grade,unit:p.unit,text:p.text,answer:p.answer,img:null};
-    });
-    pushSharedSet(questions);
+    pushSharedSet(buildShareQuestionsMap(parsed));
   }catch(e){
     if(errEl){errEl.style.display="";errEl.textContent=e.message||String(e);}
   }
@@ -2657,8 +2710,15 @@ function renderShareTab(){
   h+='<input type="text" id="shareSubjectInp" placeholder="과목 (예: 수학, 영어)" style="min-width:120px;padding:6px 8px;border-radius:6px;border:1px solid var(--bdr);">';
   h+='<input type="text" id="shareTitleInp" placeholder="제목 (생략 가능, 예: 3학년 수학 문제 모음)" style="flex:1;min-width:180px;padding:6px 8px;border-radius:6px;border:1px solid var(--bdr);">';
   h+='</div>';
-  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">';
-  h+='<button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="shareCurrentQuestionsBulk()">⚡ 지금 등록된 문제 전체 한 번에 공유하기</button>';
+  h+='<div style="margin-bottom:10px;"><button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="shareCurrentQuestionsBulk()">⚡ 지금 등록된 문제 전체 한 번에 공유하기</button></div>';
+  h+='<div style="border-top:1px solid var(--bdr);padding-top:10px;">';
+  h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px;">직접 만든 다른 표나 파일로 공유하고 싶다면(추천: 엑셀/구글시트가 PDF보다 훨씬 안정적으로 인식돼요) 아래를 이용해주세요.</div>';
+  h+='<div style="margin-bottom:8px;"><a class="btn btn-sub" style="display:inline-block;text-decoration:none;font-size:11px;padding:6px 12px;" href="assets/samples/sample_questions.xlsx" download="방탈출_문제_예시양식.xlsx">⬇️ 예시 엑셀 다운로드</a></div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">';
+  h+='<input type="text" id="shareSheetUrlInp" placeholder="구글시트 링크 붙여넣기" style="flex:1;min-width:200px;padding:6px 8px;border-radius:6px;border:1px solid var(--bdr);font-size:12px;">';
+  h+='<button class="btn btn-sub" style="padding:8px 14px;font-size:12px" onclick="shareViaSheetBulk()">구글시트로 공유하기</button>';
+  h+='<label class="btn btn-sub" style="padding:8px 14px;font-size:12px;cursor:pointer;">엑셀로 공유하기<input type="file" id="shareExcelInp" accept=".xlsx,.xls" style="display:none" onchange="shareViaExcelBulk(this.files[0])"></label>';
+  h+='</div>';
   h+='<label class="btn btn-sub" style="padding:8px 14px;font-size:12px;cursor:pointer;">📄 PDF로 일괄 공유하기<input type="file" accept="application/pdf" style="display:none" onchange="shareViaPdfBulk(this.files[0])"></label>';
   h+='</div>';
   h+='<div id="sharePdfErr" style="display:none;color:var(--red);font-size:12px;margin-top:8px;"></div>';
